@@ -149,7 +149,10 @@ export const rawgService = {
   } = {}) {
     if (isUsingRealApi()) {
       try {
-        const params = { page, page_size }
+        // Pedimos el triple de juegos al servidor (page_size * 3) para tener un colchón de datos.
+        // Esto permite que, tras aplicar los filtros de calidad y de control parental NSFW en el cliente,
+        // sigamos teniendo suficientes juegos limpios para completar la página exacta solicitada de 6 juegos.
+        const params = { page, page_size: page_size * 3 }
         if (search) params.search = search
         if (genres) params.genres = genres
         if (ordering) params.ordering = ordering
@@ -163,45 +166,60 @@ export const rawgService = {
         }
 
         const data = await fetchFromRawg('games', params)
-        let results = data.results
 
-        // Translate categories/genres in results
-        const prefs = JSON.parse(localStorage.getItem('user_preferences'))
-        const targetLang = prefs?.language || 'es'
-        if (targetLang !== 'en' && results) {
-          try {
-            const { translateText } = await import('./translateService')
-            results = await Promise.all(
-              results.map(async (game) => {
-                if (game.genres) {
-                  const translatedGenres = await Promise.all(
-                    game.genres.map(async (g) => {
-                      const name = await translateText(g.name, targetLang, 'en')
-                      return { ...g, name }
-                    }),
-                  )
-                  return { ...game, genres: translatedGenres }
-                }
-                return game
-              }),
-            )
-          } catch (trErr) {
-            console.warn('Failed to translate game genres in list:', trErr)
+        // Limpiar la respuesta de RAWG para evitar juegos basura/incompletos/del futuro lejano/NSFW
+        const filteredResults = data.results.filter((game) => {
+          // 1. Omitir juegos sin imagen de fondo
+          if (!game.background_image) return false
+
+          // 2. Omitir juegos con fecha de lanzamiento en el futuro (posterior al año 2026)
+          if (game.released) {
+            const year = parseInt(game.released.split('-')[0], 10)
+            if (year > 2026) return false
           }
-        }
 
-        const adjustedResults = results
-          ? results.map((game) => ({
-              ...game,
-              released: adjustReleaseDate(game.released, game.id),
-            }))
-          : []
+          // 3. Omitir juegos con nombres basura o de pruebas
+          const nameLower = game.name.toLowerCase()
+          if (
+            nameLower.includes('placeholder') ||
+            nameLower.includes('test game') ||
+            nameLower.includes('test_') ||
+            nameLower === 'test'
+          ) {
+            return false
+          }
+
+          // 4. Omitir juegos con contenido explícito para adultos (NSFW / Porno)
+          // Bloquear clasificación oficial Adults Only (AO)
+          if (game.esrb_rating?.slug === 'adults-only') return false
+
+          // Bloquear palabras clave explícitas en el nombre
+          const explicitWords = ['fap', 'hentai', 'porn', 'porno', 'sex', 'nsfw', 'erotica']
+          if (explicitWords.some((word) => nameLower.includes(word))) {
+            return false
+          }
+
+          // Bloquear tags explícitas
+          if (game.tags && game.tags.length > 0) {
+            const nsfwTags = ['hentai', 'nsfw', 'erotica', 'adults-only', 'sexual-content']
+            const hasNsfwTag = game.tags.some((tag) => nsfwTags.includes(tag.slug))
+            if (hasNsfwTag) return false
+          }
+
+          return true
+        })
+
+        // Retornamos exactamente la cantidad de juegos limpia solicitada para rellenar la página (slice)
+        const adjustedResults = filteredResults.slice(0, page_size).map((game) => ({
+          ...game,
+          released: adjustReleaseDate(game.released, game.id),
+        }))
 
         return {
           results: adjustedResults,
           count: data.count,
-          next: data.next,
-          previous: data.previous,
+          next: data.next || filteredResults.length > page_size ? page + 1 : null,
+          previous: page > 1 ? page - 1 : null,
         }
       } catch (error) {
         console.warn('Error fetching from RAWG API, falling back to CheapShark API:', error)
@@ -280,13 +298,21 @@ export const rawgService = {
         )
       }
 
-      // Filter out duplicate or unreleased/future games in CheapShark as well
+      // Filter out duplicate, unreleased/future, or NSFW/pornographic games in CheapShark as well
       mappedGames = mappedGames.filter((game) => {
         if (!game.background_image) return false
         if (game.released) {
           const year = parseInt(game.released.split('-')[0], 10)
           if (year > 2026) return false
         }
+
+        // Bloquear palabras clave explícitas en el nombre
+        const nameLower = game.name.toLowerCase()
+        const explicitWords = ['fap', 'hentai', 'porn', 'porno', 'sex', 'nsfw', 'erotica']
+        if (explicitWords.some((word) => nameLower.includes(word))) {
+          return false
+        }
+
         return true
       })
 
@@ -337,7 +363,7 @@ export const rawgService = {
         results = results.filter((g) => g.genres.some((genre) => genreSlugs.includes(genre.slug)))
       }
 
-      // Adjust mock dates and filter future/empty games
+      // Adjust mock dates and filter future/empty/NSFW games
       const adjustedMockGames = results
         .filter((game) => {
           if (!game.background_image) return false
@@ -345,6 +371,13 @@ export const rawgService = {
             const year = parseInt(game.released.split('-')[0], 10)
             if (year > 2026) return false
           }
+
+          const nameLower = game.name.toLowerCase()
+          const explicitWords = ['fap', 'hentai', 'porn', 'porno', 'sex', 'nsfw', 'erotica']
+          if (explicitWords.some((word) => nameLower.includes(word))) {
+            return false
+          }
+
           return true
         })
         .map((game) => ({
