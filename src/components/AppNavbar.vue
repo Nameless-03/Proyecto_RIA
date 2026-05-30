@@ -34,10 +34,28 @@ const checkout = () => {
     <div class="navbar__container container">
       <!-- Logo -->
       <RouterLink to="/" class="navbar__brand">
-        <span class="navbar__logo-icon">🎮</span>
-        <span class="navbar__logo-text"
-          >ANTIGRAVITY<span class="navbar__logo-text--highlight">GAMES</span></span
+        <!-- Isometric Box SVG Outline -->
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="navbar__logo-svg"
         >
+          <path
+            d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+          ></path>
+          <polyline points="3.29 7 12 12 20.71 7"></polyline>
+          <line x1="12" y1="22" x2="12" y2="12"></line>
+        </svg>
+        <span class="navbar__logo-text">
+          LITTLEBOX<span class="navbar__logo-text--highlight">GAMES</span>
+        </span>
       </RouterLink>
 
       <!-- Hamburger Menu (Mobile) -->
@@ -45,6 +63,7 @@ const checkout = () => {
         @click="toggleMobileMenu"
         class="navbar__toggle"
         :class="{ 'navbar__toggle--open': isMobileMenuOpen }"
+        aria-label="Abrir menú"
       >
         <span class="navbar__toggle-bar"></span>
         <span class="navbar__toggle-bar"></span>
@@ -100,10 +119,52 @@ const checkout = () => {
 
       <!-- Actions (Cart & Theme) -->
       <div class="navbar__actions">
-        <!-- Theme Toggle -->
-        <button @click="toggleTheme" class="navbar__action-btn" title="Cambiar Tema">
-          <span v-if="authStore.theme === 'dark'">☀️</span>
-          <span v-else>🌙</span>
+        <!-- Theme Toggle (Animated SVG) -->
+        <button
+          @click="toggleTheme"
+          class="navbar__action-btn theme-toggle-btn"
+          title="Cambiar Tema"
+        >
+          <!-- Sun Icon SVG Outline -->
+          <svg
+            v-if="authStore.theme === 'dark'"
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="theme-icon-svg"
+          >
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <!-- Moon Icon SVG Outline -->
+          <svg
+            v-else
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="theme-icon-svg"
+          >
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
         </button>
 
         <!-- Shopping Cart -->
@@ -113,7 +174,23 @@ const checkout = () => {
             class="navbar__action-btn navbar__cart-btn"
             title="Ver Carrito"
           >
-            <span>🛒</span>
+            <!-- Shopping Cart SVG Outline -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="navbar__cart-svg"
+            >
+              <circle cx="9" cy="21" r="1"></circle>
+              <circle cx="20" cy="21" r="1"></circle>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+            </svg>
             <span v-if="gamesStore.cartCount > 0" class="navbar__badge navbar__badge--green">
               {{ gamesStore.cartCount }}
             </span>
@@ -140,7 +217,21 @@ const checkout = () => {
                     class="cart-item__remove-btn"
                     title="Eliminar"
                   >
-                    ✕
+                    <!-- Close SVG Outline -->
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
                   </button>
                 </li>
               </ul>
@@ -189,7 +280,7 @@ const checkout = () => {
 .navbar__brand {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.65rem;
   font-size: 1.3rem;
   font-weight: 800;
   letter-spacing: -0.5px;
@@ -198,6 +289,15 @@ const checkout = () => {
 
 body.theme-light .navbar__brand {
   color: var(--color-text-primary);
+}
+
+.navbar__logo-svg {
+  stroke: var(--color-primary);
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.navbar__brand:hover .navbar__logo-svg {
+  transform: rotate(360deg);
 }
 
 .navbar__logo-text--highlight {
@@ -266,7 +366,6 @@ body.theme-light .navbar__brand {
 }
 
 .navbar__action-btn {
-  font-size: 1.25rem;
   padding: 0.5rem;
   border-radius: var(--border-radius-sm);
   display: flex;
@@ -277,6 +376,27 @@ body.theme-light .navbar__brand {
 
 .navbar__action-btn:hover {
   background-color: var(--color-bg-tertiary);
+}
+
+/* Theme Switch Animations */
+.theme-icon-svg {
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  stroke: var(--color-text-primary);
+}
+
+.theme-toggle-btn:hover .theme-icon-svg {
+  transform: rotate(45deg) scale(1.15);
+  stroke: var(--color-primary);
+}
+
+.navbar__cart-svg {
+  stroke: var(--color-text-primary);
+  transition: transform 0.3s ease;
+}
+
+.navbar__cart-btn:hover .navbar__cart-svg {
+  transform: scale(1.1) translateY(-2px);
+  stroke: var(--color-primary);
 }
 
 .navbar__cart-container {
@@ -379,12 +499,17 @@ body.theme-light .navbar__brand {
 }
 
 .cart-item__remove-btn {
-  font-size: 0.85rem;
   color: var(--color-text-secondary);
   padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: var(--transition-smooth);
 }
 
 .cart-item__remove-btn:hover {
+  background-color: var(--color-bg-tertiary);
   color: var(--color-danger);
 }
 

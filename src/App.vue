@@ -26,7 +26,27 @@ onMounted(() => {
     <footer class="app-footer">
       <div class="app-footer__container container">
         <div class="app-footer__section">
-          <h4 class="app-footer__title">🎮 ANTIGRAVITY GAMES</h4>
+          <h4 class="app-footer__title app-footer__title--logo">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="app-footer__logo-svg"
+            >
+              <path
+                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+              ></path>
+              <polyline points="3.29 7 12 12 20.71 7"></polyline>
+              <line x1="12" y1="22" x2="12" y2="12"></line>
+            </svg>
+            LITTLEBOX GAMES
+          </h4>
           <p class="app-footer__text">
             Proyecto desarrollado para el Laboratorio Universitario de Taller de RIA.
           </p>
@@ -53,7 +73,7 @@ onMounted(() => {
         </div>
       </div>
       <div class="app-footer__copyright">
-        © 2026 Antigravity Games. Todos los derechos reservados.
+        © 2026 LittleBox Games. Todos los derechos reservados.
       </div>
     </footer>
   </div>
@@ -98,6 +118,16 @@ onMounted(() => {
   color: #ffffff;
   font-size: 1.1rem;
   font-weight: 700;
+}
+
+.app-footer__title--logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.app-footer__logo-svg {
+  stroke: var(--color-primary);
 }
 
 body.theme-light .app-footer__title {

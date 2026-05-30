@@ -18,10 +18,8 @@ export const useGamesStore = defineStore('games', {
     favoritesCount: (state) => state.favorites.length,
     cartCount: (state) => state.cart.length,
     cartTotal: (state) => {
-      // Simular un precio fijo para cada juego, ya que RAWG no proporciona precios
-      // Por ejemplo, podemos usar un hash del id para generar un precio ficticio entre $9.99 y $59.99
       return state.cart.reduce((total, game) => {
-        const price = ((game.id % 6) + 1) * 10 - 0.01 // $9.99, $19.99, etc.
+        const price = game.price || ((game.id % 6) + 1) * 10 - 0.01
         return total + price
       }, 0)
     },
@@ -42,6 +40,7 @@ export const useGamesStore = defineStore('games', {
           background_image: game.background_image,
           rating: game.rating,
           metacritic: game.metacritic,
+          price: game.price || ((game.id % 6) + 1) * 10 - 0.01,
         })
       } else {
         this.favorites.splice(index, 1)
@@ -57,7 +56,7 @@ export const useGamesStore = defineStore('games', {
         name: game.name,
         slug: game.slug,
         background_image: game.background_image,
-        price: ((game.id % 6) + 1) * 10 - 0.01,
+        price: game.price || ((game.id % 6) + 1) * 10 - 0.01,
       })
       localStorage.setItem('game_cart', JSON.stringify(this.cart))
     },

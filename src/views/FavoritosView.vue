@@ -15,7 +15,23 @@ const gamesStore = useGamesStore()
 
     <main class="favorites-main">
       <div v-if="gamesStore.favoritesCount === 0" class="favorites-main__empty">
-        <span class="favorites-main__empty-icon">❤️</span>
+        <span class="favorites-main__empty-icon">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="64"
+            height="64"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--color-primary)"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+            ></path>
+          </svg>
+        </span>
         <h2 class="favorites-main__empty-title">Aún no tienes favoritos</h2>
         <p class="favorites-main__empty-desc">
           Navega por el catálogo y marca los juegos que te interesen.
@@ -37,7 +53,11 @@ const gamesStore = useGamesStore()
               <span class="game-card__genre">
                 {{ game.genres?.[0]?.name || 'Videojuego' }}
               </span>
-              <span class="game-card__price"> ${{ ((game.id % 6) + 1) * 10 - 0.01 }} </span>
+              <span class="game-card__price">
+                ${{
+                  game.price ? game.price.toFixed(2) : (((game.id % 6) + 1) * 10 - 0.01).toFixed(2)
+                }}
+              </span>
             </div>
             <div class="game-card__actions">
               <RouterLink :to="`/game/${game.id}`" class="btn btn--secondary">
@@ -48,14 +68,48 @@ const gamesStore = useGamesStore()
                 class="btn btn--danger btn--icon-only"
                 title="Eliminar de favoritos"
               >
-                🗑️
+                <!-- Trash SVG Outline -->
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path
+                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                  ></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
               </button>
               <button
                 @click="gamesStore.addToCart(game)"
                 class="btn btn--primary"
                 :class="{ 'btn--disabled': gamesStore.isInCart(game.id) }"
               >
-                {{ gamesStore.isInCart(game.id) ? 'En Carrito' : 'Comprar' }}
+                <!-- Cart SVG Outline -->
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="9" cy="21" r="1"></circle>
+                  <circle cx="20" cy="21" r="1"></circle>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                </svg>
+                <span>{{ gamesStore.isInCart(game.id) ? 'En Carrito' : 'Comprar' }}</span>
               </button>
             </div>
           </div>

@@ -76,7 +76,22 @@ const handleSaveApiKey = () => {
 
         <!-- Case 1: User is Logged In -->
         <div v-if="authStore.isLoggedIn" class="user-profile">
-          <div class="user-profile__avatar">👤</div>
+          <div class="user-profile__avatar">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="36"
+              height="36"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#ffffff"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
           <div class="user-profile__info">
             <p class="user-profile__username">
               Bienvenido, <strong>{{ authStore.getUsername }}</strong>
@@ -140,14 +155,48 @@ const handleSaveApiKey = () => {
               class="btn"
               :class="authStore.theme === 'dark' ? 'btn--primary' : 'btn--secondary'"
             >
-              🌙 Oscuro (Twitch)
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+              <span>Oscuro (Twitch)</span>
             </button>
             <button
               @click="authStore.setTheme('light')"
               class="btn"
               :class="authStore.theme === 'light' ? 'btn--primary' : 'btn--secondary'"
             >
-              ☀️ Claro
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+              <span>Claro</span>
             </button>
           </div>
         </div>
@@ -332,7 +381,6 @@ body.theme-light .profile-card__title {
 }
 
 .user-profile__avatar {
-  font-size: 3.5rem;
   background-color: var(--color-primary);
   width: 80px;
   height: 80px;

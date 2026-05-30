@@ -29,7 +29,21 @@ onMounted(async () => {
   <div class="game-detail container fade-in">
     <!-- Back Button -->
     <button @click="router.back()" class="btn btn--secondary game-detail__back-btn">
-      ← Volver atrás
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      Volver atrás
     </button>
 
     <div v-if="loading" class="game-detail__loading">Cargando detalles del juego...</div>
@@ -90,7 +104,11 @@ onMounted(async () => {
           <div class="purchase-box">
             <div class="purchase-box__price-row">
               <span class="purchase-box__label">Precio Estimado</span>
-              <span class="purchase-box__price">${{ ((game.id % 6) + 1) * 10 - 0.01 }}</span>
+              <span class="purchase-box__price"
+                >${{
+                  game.price ? game.price.toFixed(2) : (((game.id % 6) + 1) * 10 - 0.01).toFixed(2)
+                }}</span
+              >
             </div>
 
             <div class="purchase-box__actions">
@@ -99,7 +117,24 @@ onMounted(async () => {
                 class="btn btn--primary purchase-box__btn"
                 :class="{ 'btn--disabled': gamesStore.isInCart(game.id) }"
               >
-                {{ gamesStore.isInCart(game.id) ? '🛒 En el Carrito' : '🛒 Agregar al Carrito' }}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="9" cy="21" r="1"></circle>
+                  <circle cx="20" cy="21" r="1"></circle>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                </svg>
+                <span>{{
+                  gamesStore.isInCart(game.id) ? 'En el Carrito' : 'Agregar al Carrito'
+                }}</span>
               </button>
 
               <button
@@ -107,7 +142,26 @@ onMounted(async () => {
                 class="btn btn--secondary purchase-box__btn"
                 :class="{ 'btn--active': gamesStore.isFavorite(game.id) }"
               >
-                {{ gamesStore.isFavorite(game.id) ? '❤️ En Favoritos' : '🤍 Añadir a Favoritos' }}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="heart-icon"
+                  :class="{ 'heart-icon--filled': gamesStore.isFavorite(game.id) }"
+                >
+                  <path
+                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                  ></path>
+                </svg>
+                <span>{{
+                  gamesStore.isFavorite(game.id) ? 'En Favoritos' : 'Añadir a Favoritos'
+                }}</span>
               </button>
             </div>
           </div>
@@ -128,7 +182,25 @@ onMounted(async () => {
 
             <div v-if="game.rating" class="specs-box__row">
               <span class="specs-box__label">Rating:</span>
-              <span>⭐ {{ game.rating }} / 5 ({{ game.ratings_count }} votos)</span>
+              <span class="specs-box__rating">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#ffc107"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="star-icon"
+                >
+                  <polygon
+                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+                  ></polygon>
+                </svg>
+                {{ game.rating }} / 5 ({{ game.ratings_count }} votos)
+              </span>
             </div>
 
             <div v-if="game.playtime" class="specs-box__row">
@@ -351,6 +423,33 @@ body.theme-light .purchase-box__price {
   background-color: var(--color-accent-purple-light);
   border-color: var(--color-primary);
   color: var(--color-primary);
+}
+
+.heart-icon {
+  stroke: currentColor;
+  transition:
+    transform 0.2s ease,
+    fill 0.2s ease;
+}
+
+.heart-icon--filled {
+  fill: var(--color-primary);
+  stroke: var(--color-primary);
+}
+
+.btn--active .heart-icon {
+  stroke: var(--color-primary);
+  fill: var(--color-primary);
+}
+
+.specs-box__rating {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.star-icon {
+  fill: #ffc107;
 }
 
 /* Specs Box */
