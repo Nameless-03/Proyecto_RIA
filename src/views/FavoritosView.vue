@@ -2,17 +2,19 @@
 import { useGamesStore } from '../stores/games'
 import GameCard from '../components/GameCard.vue'
 import { useFavorites } from '../composables/useFavorites'
+import { useI18n } from '../composables/useI18n'
 
 const gamesStore = useGamesStore()
 const { favorites, favoritesCount, toggleFavorite } = useFavorites()
+const { t } = useI18n()
 </script>
 
 <template>
   <div class="favorites-view container fade-in">
     <header class="favorites-header">
-      <h1 class="favorites-header__title">{{ t('nav.favorites') }}</h1>
+      <h1 class="favorites-header__title">{{ t('Mis Favoritos') }}</h1>
       <p class="favorites-header__subtitle">
-        {{ t('favorites.subtitle') }}
+        {{ t('Gestiona y accede rápidamente a tus juegos guardados de forma dinámica.') }}
       </p>
     </header>
 
@@ -35,35 +37,25 @@ const { favorites, favoritesCount, toggleFavorite } = useFavorites()
             ></path>
           </svg>
         </span>
-        <h2 class="favorites-main__empty-title">{{ t('favorites.empty') }}</h2>
+        <h2 class="favorites-main__empty-title">{{ t('Aún no tienes favoritos') }}</h2>
         <p class="favorites-main__empty-desc">
-          {{
-            authStore.preferences.language === 'en'
-              ? 'Browse the catalog and mark the games you like.'
-              : authStore.preferences.language === 'pt'
-                ? 'Navegue pelo catálogo e marque os jogos de seu interesse.'
-                : authStore.preferences.language === 'fr'
-                  ? 'Parcourez le catalogue et marquez les jeux qui vous intéressent.'
-                  : authStore.preferences.language === 'de'
-                    ? 'Stöbere im Katalog und markiere die Spiele, die dich interessieren.'
-                    : authStore.preferences.language === 'it'
-                      ? 'Sfoglia il catalogo e segna i giochi che ti interessano.'
-                      : 'Navega por el catálogo y marca los juegos que te interesen.'
-          }}
+          {{ t('Navega por el catálogo y marca los juegos que te interesen.') }}
         </p>
-        <RouterLink to="/catalog" class="btn btn--primary"> {{ t('home.exploreBtn') }} </RouterLink>
+        <RouterLink to="/catalog" class="btn btn--primary">
+          {{ t('Explorar Catálogo') }}
+        </RouterLink>
       </div>
 
       <div v-else class="favorites-main__grid">
         <GameCard v-for="game in favorites" :key="game.id" :game="game">
           <template #actions>
             <RouterLink :to="`/game/${game.id}`" class="btn btn--secondary">
-              Ver Detalles
+              {{ t('Ver Detalles') }}
             </RouterLink>
             <button
               @click="toggleFavorite(game)"
               class="btn btn--outline btn--active"
-              title="Eliminar de favoritos"
+              :title="t('Eliminar de favoritos')"
             >
               <!-- Heart SVG Filled -->
               <svg
@@ -104,7 +96,7 @@ const { favorites, favoritesCount, toggleFavorite } = useFavorites()
                 <circle cx="20" cy="21" r="1"></circle>
                 <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
               </svg>
-              <span>{{ gamesStore.isInCart(game.id) ? 'En Carrito' : 'Comprar' }}</span>
+              <span>{{ gamesStore.isInCart(game.id) ? t('En Carrito') : t('Comprar') }}</span>
             </button>
           </template>
         </GameCard>

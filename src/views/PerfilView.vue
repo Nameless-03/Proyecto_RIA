@@ -51,16 +51,16 @@ const handleSavePreferences = () => {
 <template>
   <div class="profile-view container fade-in">
     <header class="profile-header">
-      <h1 class="profile-header__title">{{ t('profile.title') }}</h1>
+      <h1 class="profile-header__title">{{ t('Mi Perfil') }}</h1>
       <p class="profile-header__subtitle">
-        {{ t('profile.subtitle') }}
+        {{ t('Configura tu experiencia de juego y tus preferencias personales') }}
       </p>
     </header>
 
     <div class="profile-grid">
       <!-- Section 1: Simulated Auth -->
       <section class="profile-card">
-        <h2 class="profile-card__title">{{ t('profile.sessionTitle') }}</h2>
+        <h2 class="profile-card__title">{{ t('Control de Sesión') }}</h2>
 
         <!-- Case 1: User is Logged In -->
         <div v-if="authStore.isLoggedIn" class="user-profile">
@@ -82,22 +82,26 @@ const handleSavePreferences = () => {
           </div>
           <div class="user-profile__info">
             <p class="user-profile__username">
-              {{ t('profile.welcome') }} <strong>{{ authStore.getUsername }}</strong>
+              {{ t('¡Bienvenido,') }} <strong>{{ authStore.getUsername }}</strong>
             </p>
             <p class="user-profile__email">{{ authStore.user.email }}</p>
             <p class="user-profile__date">
-              {{ t('profile.memberSince') }} {{ authStore.user.joinedDate }}
+              {{ t('Miembro desde:') }} {{ authStore.user.joinedDate }}
             </p>
           </div>
           <button @click="handleLogout" class="btn btn--danger user-profile__btn">
-            {{ t('profile.logoutBtn') }}
+            {{ t('Cerrar Sesión') }}
           </button>
         </div>
 
         <!-- Case 2: Guest Mode / Login Form -->
         <form v-else @submit.prevent="handleLogin" class="login-form">
           <p class="login-form__info">
-            {{ t('profile.loginInfo') }}
+            {{
+              t(
+                'Inicia sesión de forma simulada para desbloquear la experiencia personalizada y sincronizar tus favoritos en la nube.',
+              )
+            }}
           </p>
 
           <div v-if="loginError" class="login-form__error">
@@ -105,7 +109,7 @@ const handleSavePreferences = () => {
           </div>
 
           <div class="form-field">
-            <label class="form-field__label" for="username">{{ t('profile.usernameLabel') }}</label>
+            <label class="form-field__label" for="username">{{ t('Nombre de usuario') }}</label>
             <input
               id="username"
               type="text"
@@ -117,7 +121,7 @@ const handleSavePreferences = () => {
           </div>
 
           <div class="form-field">
-            <label class="form-field__label" for="password">{{ t('profile.passwordLabel') }}</label>
+            <label class="form-field__label" for="password">{{ t('Contraseña') }}</label>
             <input
               id="password"
               type="password"
@@ -129,18 +133,18 @@ const handleSavePreferences = () => {
           </div>
 
           <button type="submit" class="btn btn--primary login-form__btn">
-            {{ t('profile.loginBtn') }}
+            {{ t('Iniciar Sesión') }}
           </button>
         </form>
       </section>
 
       <!-- Section 2: Visual and App Preferences -->
       <section class="profile-card">
-        <h2 class="profile-card__title">{{ t('profile.configTitle') }}</h2>
+        <h2 class="profile-card__title">{{ t('Preferencias de Plataforma') }}</h2>
 
         <!-- Theme Selection -->
         <div class="theme-selector">
-          <span class="theme-selector__label">{{ t('profile.themeLabel') }}</span>
+          <span class="theme-selector__label">{{ t('Tema Visual') }}</span>
           <div class="theme-selector__buttons">
             <button
               @click="authStore.setTheme('dark')"
@@ -160,7 +164,7 @@ const handleSavePreferences = () => {
               >
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
               </svg>
-              <span>{{ t('profile.themeDark') }}</span>
+              <span>{{ t('Tema Oscuro') }}</span>
             </button>
             <button
               @click="authStore.setTheme('light')"
@@ -188,7 +192,7 @@ const handleSavePreferences = () => {
                 <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
                 <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
               </svg>
-              <span>{{ t('profile.themeLight') }}</span>
+              <span>{{ t('Tema Claro') }}</span>
             </button>
           </div>
         </div>
@@ -198,94 +202,34 @@ const handleSavePreferences = () => {
         <!-- User Preferences Form -->
         <form @submit.prevent="handleSavePreferences" class="preferences-form">
           <div v-if="showPrefsSuccess" class="preferences-form__success">
-            {{ t('profile.successPrefs') }}
+            {{ t('¡Preferencias guardadas con éxito!') }}
           </div>
 
           <div class="form-field">
-            <label class="form-field__label" for="currency">{{ t('profile.currencyLabel') }}</label>
+            <label class="form-field__label" for="currency">{{ t('Moneda Preferida') }}</label>
             <select id="currency" v-model="selectedCurrency" class="form-field__input">
               <option value="USD">
-                {{
-                  authStore.preferences.language === 'en'
-                    ? 'Dollar ($ USD)'
-                    : authStore.preferences.language === 'pt'
-                      ? 'Dólar ($ USD)'
-                      : authStore.preferences.language === 'fr'
-                        ? 'Dollar ($ USD)'
-                        : authStore.preferences.language === 'de'
-                          ? 'Dollar ($ USD)'
-                          : authStore.preferences.language === 'it'
-                            ? 'Dollaro ($ USD)'
-                            : 'Dólar ($ USD)'
-                }}
+                {{ t('Dólar ($ USD)') }}
               </option>
               <option value="EUR">Euro (€ EUR)</option>
               <option value="ARS">
-                {{
-                  authStore.preferences.language === 'en'
-                    ? 'Argentine Peso ($ ARS)'
-                    : authStore.preferences.language === 'pt'
-                      ? 'Peso Argentino ($ ARS)'
-                      : authStore.preferences.language === 'fr'
-                        ? 'Peso Argentin ($ ARS)'
-                        : authStore.preferences.language === 'de'
-                          ? 'Argentinischer Peso ($ ARS)'
-                          : authStore.preferences.language === 'it'
-                            ? 'Peso Argentino ($ ARS)'
-                            : 'Peso Argentino ($ ARS)'
-                }}
+                {{ t('Peso Argentino ($ ARS)') }}
               </option>
             </select>
           </div>
 
           <div class="form-field">
-            <label class="form-field__label" for="pref-genre">{{ t('profile.genreLabel') }}</label>
+            <label class="form-field__label" for="pref-genre">{{ t('Género Favorito') }}</label>
             <select id="pref-genre" v-model="selectedGenre" class="form-field__input">
               <option value="">
-                {{
-                  authStore.preferences.language === 'en'
-                    ? 'None'
-                    : authStore.preferences.language === 'pt'
-                      ? 'Nenhum'
-                      : authStore.preferences.language === 'fr'
-                        ? 'Aucun'
-                        : authStore.preferences.language === 'de'
-                          ? 'Keines'
-                          : authStore.preferences.language === 'it'
-                            ? 'Nessuno'
-                            : 'Ninguno'
-                }}
+                {{ t('Ninguno') }}
               </option>
               <option value="action">
-                {{
-                  authStore.preferences.language === 'en'
-                    ? 'Action'
-                    : authStore.preferences.language === 'pt'
-                      ? 'Ação'
-                      : authStore.preferences.language === 'fr'
-                        ? 'Action'
-                        : authStore.preferences.language === 'de'
-                          ? 'Action'
-                          : authStore.preferences.language === 'it'
-                            ? 'Azione'
-                            : 'Acción'
-                }}
+                {{ t('Acción') }}
               </option>
               <option value="role-playing-games-rpg">RPG</option>
               <option value="adventure">
-                {{
-                  authStore.preferences.language === 'en'
-                    ? 'Adventure'
-                    : authStore.preferences.language === 'pt'
-                      ? 'Aventura'
-                      : authStore.preferences.language === 'fr'
-                        ? 'Aventure'
-                        : authStore.preferences.language === 'de'
-                          ? 'Abenteuer'
-                          : authStore.preferences.language === 'it'
-                            ? 'Avventura'
-                            : 'Aventura'
-                }}
+                {{ t('Aventura') }}
               </option>
               <option value="indie">Indie</option>
             </select>
@@ -293,7 +237,7 @@ const handleSavePreferences = () => {
 
           <div class="form-field">
             <label class="form-field__label" for="pref-language">{{
-              t('profile.langLabel')
+              t('Idioma de Preferencia')
             }}</label>
             <select id="pref-language" v-model="selectedLanguage" class="form-field__input">
               <option value="es">Español</option>
@@ -313,24 +257,12 @@ const handleSavePreferences = () => {
               class="form-field__checkbox"
             />
             <label class="form-field__label-checkbox" for="newsletter">
-              {{
-                authStore.preferences.language === 'en'
-                  ? 'Receive video game offers by email'
-                  : authStore.preferences.language === 'pt'
-                    ? 'Receber ofertas de jogos por e-mail'
-                    : authStore.preferences.language === 'fr'
-                      ? 'Recevoir des offres de jeux vidéo par e-mail'
-                      : authStore.preferences.language === 'de'
-                        ? 'Erhalte Spieleangebote per E-Mail'
-                        : authStore.preferences.language === 'it'
-                          ? 'Ricevi offerte di videogiochi via e-mail'
-                          : 'Recibir ofertas de videojuegos por correo electrónico'
-              }}
+              {{ t('Recibir ofertas de videojuegos por correo electrónico') }}
             </label>
           </div>
 
           <button type="submit" class="btn btn--secondary preferences-form__btn">
-            {{ t('profile.saveBtn') }}
+            {{ t('Guardar Preferencias') }}
           </button>
         </form>
       </section>

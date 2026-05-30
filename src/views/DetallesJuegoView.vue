@@ -72,7 +72,7 @@ onMounted(async () => {
       }
     }
   } catch (err) {
-    error.value = t('details.error')
+    error.value = t('Error al cargar los detalles del juego.')
     console.error(err)
   } finally {
     loading.value = false
@@ -98,10 +98,10 @@ onMounted(async () => {
         <line x1="19" y1="12" x2="5" y2="12"></line>
         <polyline points="12 19 5 12 12 5"></polyline>
       </svg>
-      {{ t('details.backBtn') }}
+      {{ t('Volver') }}
     </button>
 
-    <div v-if="loading" class="game-detail__loading">{{ t('details.loading') }}</div>
+    <div v-if="loading" class="game-detail__loading">{{ t('Cargando detalles del juego...') }}</div>
 
     <div v-else-if="error" class="game-detail__error">
       {{ error }}
@@ -121,33 +121,8 @@ onMounted(async () => {
           </div>
           <h1 class="game-detail__title">{{ game.name }}</h1>
           <p class="game-detail__release">
-            {{
-              authStore.preferences.language === 'en'
-                ? 'Published:'
-                : authStore.preferences.language === 'pt'
-                  ? 'Publicado:'
-                  : authStore.preferences.language === 'fr'
-                    ? 'Publié :'
-                    : authStore.preferences.language === 'de'
-                      ? 'Veröffentlicht:'
-                      : authStore.preferences.language === 'it'
-                        ? 'Pubblicato:'
-                        : 'Publicado:'
-            }}
-            {{
-              game.released ||
-              (authStore.preferences.language === 'en'
-                ? 'Not specified'
-                : authStore.preferences.language === 'pt'
-                  ? 'Não especificado'
-                  : authStore.preferences.language === 'fr'
-                    ? 'Non spécifié'
-                    : authStore.preferences.language === 'de'
-                      ? 'Nicht angegeben'
-                      : authStore.preferences.language === 'it'
-                        ? 'Non specificato'
-                        : 'No especificado')
-            }}
+            {{ t('Publicado:') }}
+            {{ game.released || t('No especificado') }}
           </p>
         </div>
       </header>
@@ -158,7 +133,7 @@ onMounted(async () => {
         <main class="game-detail__main">
           <section class="game-detail__section">
             <div class="game-detail__section-header">
-              <h2 class="game-detail__section-title">{{ t('details.about') }}</h2>
+              <h2 class="game-detail__section-title">{{ t('Sobre el Juego') }}</h2>
 
               <!-- Translation Indicator / Button -->
               <div v-if="isTranslated" class="translation-status">
@@ -179,32 +154,20 @@ onMounted(async () => {
                       points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
                     ></polygon>
                   </svg>
-                  {{ t('details.translated') }}
+                  {{ t('Traducido al') }}
                   {{ getLanguageName(authStore.preferences.language) }}
                 </span>
                 <button
                   @click="toggleOriginal"
                   class="btn btn--secondary btn--xs translation-status__btn"
                 >
-                  {{ showOriginal ? t('details.verTraducido') : t('details.verOriginal') }}
+                  {{ showOriginal ? t('Ver Traducido') : t('Ver Original') }}
                 </button>
               </div>
               <div v-else-if="translating" class="translation-status">
                 <span class="translation-status__loading">
                   <span class="spinner"></span>
-                  {{
-                    authStore.preferences.language === 'en'
-                      ? 'Translating description...'
-                      : authStore.preferences.language === 'pt'
-                        ? 'Traduzindo descrição...'
-                        : authStore.preferences.language === 'fr'
-                          ? 'Traduction de la description...'
-                          : authStore.preferences.language === 'de'
-                            ? 'Beschreibung wird übersetzt...'
-                            : authStore.preferences.language === 'it'
-                              ? 'Traduzione della descrizione...'
-                              : 'Traduciendo descripción...'
-                  }}
+                  {{ t('Traduciendo descripción...') }}
                 </span>
               </div>
             </div>
@@ -212,19 +175,7 @@ onMounted(async () => {
             <div
               class="game-detail__description"
               v-html="
-                game.description ||
-                game.description_raw ||
-                (authStore.preferences.language === 'en'
-                  ? 'No description available.'
-                  : authStore.preferences.language === 'pt'
-                    ? 'Nenhuma descrição disponível.'
-                    : authStore.preferences.language === 'fr'
-                      ? 'Aucune description disponible.'
-                      : authStore.preferences.language === 'de'
-                        ? 'Keine Beschreibung verfügbar.'
-                        : authStore.preferences.language === 'it'
-                          ? 'Nessuna descrizione disponibile.'
-                          : 'No hay descripción disponible.')
+                game.description || game.description_raw || t('No hay descripción disponible.')
               "
             ></div>
           </section>
@@ -234,7 +185,7 @@ onMounted(async () => {
             v-if="game.short_screenshots && game.short_screenshots.length > 0"
             class="game-detail__section"
           >
-            <h2 class="game-detail__section-title">{{ t('details.screenshots') }}</h2>
+            <h2 class="game-detail__section-title">{{ t('Capturas de Pantalla') }}</h2>
             <div class="game-detail__screenshots">
               <img
                 v-for="ss in game.short_screenshots.filter((s) => s.id !== -1)"
@@ -251,7 +202,7 @@ onMounted(async () => {
         <aside class="game-detail__sidebar">
           <div class="purchase-box">
             <div class="purchase-box__price-row">
-              <span class="purchase-box__label">{{ t('details.priceLabel') }}</span>
+              <span class="purchase-box__label">{{ t('Precio Estimado') }}</span>
               <span class="purchase-box__price"
                 >${{
                   game.price ? game.price.toFixed(2) : (((game.id % 6) + 1) * 10 - 0.01).toFixed(2)
@@ -280,9 +231,7 @@ onMounted(async () => {
                   <circle cx="20" cy="21" r="1"></circle>
                   <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
                 </svg>
-                <span>{{
-                  gamesStore.isInCart(game.id) ? t('details.inCart') : t('details.addToCart')
-                }}</span>
+                <span>{{ gamesStore.isInCart(game.id) ? t('En Carrito') : t('Comprar') }}</span>
               </button>
 
               <button
@@ -308,7 +257,7 @@ onMounted(async () => {
                   ></path>
                 </svg>
                 <span>{{
-                  gamesStore.isFavorite(game.id) ? t('details.inFav') : t('details.addFav')
+                  gamesStore.isFavorite(game.id) ? t('Favorito') : t('Añadir a favoritos')
                 }}</span>
               </button>
             </div>
@@ -347,30 +296,17 @@ onMounted(async () => {
                     points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
                   ></polygon>
                 </svg>
-                {{ game.rating }} / 5 ({{ game.ratings_count }}
-                {{
-                  authStore.preferences.language === 'en'
-                    ? 'votes'
-                    : authStore.preferences.language === 'pt'
-                      ? 'votos'
-                      : authStore.preferences.language === 'fr'
-                        ? 'votes'
-                        : authStore.preferences.language === 'de'
-                          ? 'Stimmen'
-                          : authStore.preferences.language === 'it'
-                            ? 'voti'
-                            : 'votos'
-                }})
+                {{ game.rating }} / 5 ({{ game.ratings_count }} {{ t('votos') }})
               </span>
             </div>
 
             <div v-if="game.playtime" class="specs-box__row">
-              <span class="specs-box__label">{{ t('details.playtime') }}</span>
-              <span>{{ game.playtime }} {{ t('details.hours') }}</span>
+              <span class="specs-box__label">{{ t('Tiempo de juego:') }}</span>
+              <span>{{ game.playtime }} {{ t('horas') }}</span>
             </div>
 
             <div v-if="game.platforms" class="specs-box__row specs-box__row--vertical">
-              <span class="specs-box__label">{{ t('details.platforms') }}</span>
+              <span class="specs-box__label">{{ t('Plataformas:') }}</span>
               <div class="specs-box__platforms">
                 <span
                   v-for="p in game.platforms"
@@ -383,12 +319,12 @@ onMounted(async () => {
             </div>
 
             <div v-if="game.developers && game.developers.length > 0" class="specs-box__row">
-              <span class="specs-box__label">{{ t('details.developer') }}</span>
+              <span class="specs-box__label">{{ t('Desarrollador:') }}</span>
               <span>{{ game.developers.map((d) => d.name).join(', ') }}</span>
             </div>
 
             <div v-if="game.publishers && game.publishers.length > 0" class="specs-box__row">
-              <span class="specs-box__label">{{ t('details.publisher') }}</span>
+              <span class="specs-box__label">{{ t('Editor:') }}</span>
               <span>{{ game.publishers.map((p) => p.name).join(', ') }}</span>
             </div>
           </div>

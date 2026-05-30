@@ -81,7 +81,7 @@ const checkout = () => {
             active-class="navbar__link--active"
             @click="isMobileMenuOpen = false"
           >
-            {{ t('nav.home') }}
+            {{ t('Inicio') }}
           </RouterLink>
         </li>
         <li class="navbar__item">
@@ -91,7 +91,7 @@ const checkout = () => {
             active-class="navbar__link--active"
             @click="isMobileMenuOpen = false"
           >
-            {{ t('nav.catalog') }}
+            {{ t('Catálogo') }}
           </RouterLink>
         </li>
         <li class="navbar__item">
@@ -101,7 +101,7 @@ const checkout = () => {
             active-class="navbar__link--active"
             @click="isMobileMenuOpen = false"
           >
-            {{ t('nav.favorites') }}
+            {{ t('Favoritos') }}
             <span v-if="gamesStore.favoritesCount > 0" class="navbar__badge navbar__badge--purple">
               {{ gamesStore.favoritesCount }}
             </span>
@@ -114,7 +114,7 @@ const checkout = () => {
             active-class="navbar__link--active"
             @click="isMobileMenuOpen = false"
           >
-            {{ t('nav.profile') }} ({{ authStore.getUsername }})
+            {{ t('Perfil') }} ({{ authStore.getUsername }})
           </RouterLink>
         </li>
       </ul>
@@ -200,22 +200,10 @@ const checkout = () => {
 
           <!-- Cart Dropdown -->
           <div v-if="isCartOpen" class="cart-dropdown fade-in">
-            <h4 class="cart-dropdown__title">{{ t('nav.cart') }}</h4>
+            <h4 class="cart-dropdown__title">{{ t('Carrito de Compras') }}</h4>
 
             <div v-if="gamesStore.cartCount === 0" class="cart-dropdown__empty">
-              {{
-                authStore.preferences.language === 'en'
-                  ? 'Cart is empty.'
-                  : authStore.preferences.language === 'pt'
-                    ? 'O carrinho está vazio.'
-                    : authStore.preferences.language === 'fr'
-                      ? 'Le panier est vide.'
-                      : authStore.preferences.language === 'de'
-                        ? 'Der Warenkorb ist leer.'
-                        : authStore.preferences.language === 'it'
-                          ? 'Il carrello è vuoto.'
-                          : 'El carrito está vacío.'
-              }}
+              {{ t('El carrito está vacío.') }}
             </div>
 
             <div v-else class="cart-dropdown__content">
@@ -229,7 +217,7 @@ const checkout = () => {
                   <button
                     @click="gamesStore.removeFromCart(item.id)"
                     class="cart-item__remove-btn"
-                    :title="authStore.preferences.language === 'en' ? 'Remove' : 'Eliminar'"
+                    :title="t('Eliminar')"
                   >
                     <!-- Close SVG Outline -->
                     <svg
@@ -251,7 +239,7 @@ const checkout = () => {
               </ul>
 
               <div class="cart-dropdown__total">
-                <span>Total:</span>
+                <span>{{ t('Total') }}:</span>
                 <span class="cart-dropdown__total-price"
                   >${{ gamesStore.cartTotal.toFixed(2) }}</span
                 >
@@ -259,34 +247,10 @@ const checkout = () => {
 
               <div class="cart-dropdown__actions">
                 <button @click="gamesStore.clearCart()" class="btn btn--secondary btn--small">
-                  {{
-                    authStore.preferences.language === 'en'
-                      ? 'Clear'
-                      : authStore.preferences.language === 'pt'
-                        ? 'Limpar'
-                        : authStore.preferences.language === 'fr'
-                          ? 'Vider'
-                          : authStore.preferences.language === 'de'
-                            ? 'Leeren'
-                            : authStore.preferences.language === 'it'
-                              ? 'Svuota'
-                              : 'Vaciar'
-                  }}
+                  {{ t('Vaciar') }}
                 </button>
                 <button @click="checkout" class="btn btn--primary btn--small">
-                  {{
-                    authStore.preferences.language === 'en'
-                      ? 'Pay'
-                      : authStore.preferences.language === 'pt'
-                        ? 'Pagar'
-                        : authStore.preferences.language === 'fr'
-                          ? 'Payer'
-                          : authStore.preferences.language === 'de'
-                            ? 'Bezahlen'
-                            : authStore.preferences.language === 'it'
-                              ? 'Paga'
-                              : 'Pagar'
-                  }}
+                  {{ t('Pagar') }}
                 </button>
               </div>
             </div>
