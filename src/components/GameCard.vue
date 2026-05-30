@@ -18,8 +18,13 @@ defineProps({
     <div class="game-card__content">
       <h3 class="game-card__title" :title="game.name">{{ game.name }}</h3>
       <div class="game-card__meta">
-        <span class="game-card__genre">
-          {{ game.genres?.[0]?.name || 'Videojuego' }}
+        <span class="game-card__genre" :title="game.genres?.map((g) => g.name).join(', ')">
+          {{
+            game.genres
+              ?.slice(0, 2)
+              .map((g) => g.name)
+              .join(', ') || 'Videojuego'
+          }}
         </span>
         <span class="game-card__price">
           ${{ game.price ? game.price.toFixed(2) : (((game.id % 6) + 1) * 10 - 0.01).toFixed(2) }}

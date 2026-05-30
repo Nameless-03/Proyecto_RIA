@@ -8,6 +8,7 @@ export const useGamesStore = defineStore('games', {
     tempFilters: JSON.parse(sessionStorage.getItem('temp_filters')) || {
       genre: '',
       ordering: '',
+      page: 1,
     },
   }),
 
@@ -88,6 +89,7 @@ export const useGamesStore = defineStore('games', {
       this.tempFilters = {
         genre: '',
         ordering: '',
+        page: 1,
       }
       sessionStorage.removeItem('temp_filters')
     },
