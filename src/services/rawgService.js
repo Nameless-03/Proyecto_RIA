@@ -249,7 +249,20 @@ export const rawgService = {
   async getGameDetail(idOrSlug) {
     if (isUsingRealApi()) {
       try {
-        return await fetchFromRawg(`games/${idOrSlug}`)
+        const gameDetail = await fetchFromRawg(`games/${idOrSlug}`)
+        try {
+          const screenshotsData = await fetchFromRawg(`games/${idOrSlug}/screenshots`)
+          if (screenshotsData && screenshotsData.results) {
+            gameDetail.short_screenshots = screenshotsData.results.map((ss, idx) => ({
+              id: ss.id || idx,
+              image: ss.image,
+            }))
+          }
+        } catch (screenshotError) {
+          console.warn('Could not fetch screenshots from RAWG:', screenshotError)
+          gameDetail.short_screenshots = []
+        }
+        return gameDetail
       } catch (error) {
         console.warn('Error fetching game detail from RAWG, falling back:', error)
       }
