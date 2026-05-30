@@ -190,6 +190,13 @@ export const rawgService = {
           }
         }
 
+        const adjustedResults = results
+          ? results.map((game) => ({
+              ...game,
+              released: adjustReleaseDate(game.released, game.id),
+            }))
+          : []
+
         return {
           results: adjustedResults,
           count: data.count,

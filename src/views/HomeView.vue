@@ -10,7 +10,6 @@ import { useI18n } from '../composables/useI18n'
 const router = useRouter()
 const gamesStore = useGamesStore()
 const { isFavorite, toggleFavorite } = useFavorites()
-const { t } = useI18n()
 
 // Destacados
 const featuredGames = ref([])
