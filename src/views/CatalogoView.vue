@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { rawgService } from '../services/rawgService'
 import { useGamesStore } from '../stores/games'
 import GameCard from '../components/GameCard.vue'
@@ -17,8 +17,10 @@ const genresList = ref([])
 const loading = ref(true)
 const error = ref(null)
 
-const currentPage = ref(1)
+const currentPage = ref(gamesStore.tempFilters.page || 1)
 const hasNextPage = ref(false)
+const totalGamesCount = ref(0)
+const totalPages = computed(() => Math.ceil(totalGamesCount.value / 6))
 
 const loadGenres = async () => {
   try {
@@ -32,6 +34,13 @@ const loadGames = async () => {
   loading.value = true
   error.value = null
   try {
+    // Sincronizar página actual con el store de Pinia
+    gamesStore.setTempFilters({
+      genre: selectedGenre.value,
+      ordering: selectedOrdering.value,
+      page: currentPage.value,
+    })
+
     const data = await rawgService.getGames({
       search: searchInput.value,
       genres: selectedGenre.value,
@@ -42,6 +51,7 @@ const loadGames = async () => {
 
     games.value = data.results
     hasNextPage.value = !!data.next
+    totalGamesCount.value = data.count || 0
   } catch (err) {
     error.value = t('Error al cargar los videojuegos del catálogo.')
     console.error(err)
@@ -56,19 +66,45 @@ const applyFilters = () => {
   loadGames()
 }
 
-const nextPage = () => {
-  if (hasNextPage.value) {
-    currentPage.value++
+const goToPage = (pageNumber) => {
+  if (pageNumber >= 1 && pageNumber <= totalPages.value) {
+    currentPage.value = pageNumber
     loadGames()
   }
 }
 
-const prevPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--
-    loadGames()
+// Rango dinámico del índice de páginas (ej: 1 .. 4 .. 5 .. 6 .. 10)
+const paginationRange = computed(() => {
+  const current = currentPage.value
+  const total = totalPages.value
+  if (total <= 1) return [1]
+
+  const pages = []
+
+  // Siempre agregar página 1
+  pages.push(1)
+
+  // Determinar rango medio
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+
+  if (start > 2) {
+    pages.push('...')
   }
-}
+
+  for (let i = start; i <= end; i++) {
+    pages.push(i)
+  }
+
+  if (end < total - 1) {
+    pages.push('...')
+  }
+
+  // Siempre agregar última página
+  pages.push(total)
+
+  return pages
+})
 
 onMounted(() => {
   loadGenres()
@@ -205,16 +241,33 @@ onMounted(() => {
       <!-- Pagination Buttons -->
       <footer v-if="!loading && !error && games.length > 0" class="catalog-pagination">
         <button
-          @click="prevPage"
+          @click="goToPage(currentPage - 1)"
           class="btn btn--secondary"
           :disabled="currentPage === 1"
           :class="{ 'btn--disabled': currentPage === 1 }"
         >
           {{ t('Anterior') }}
         </button>
-        <span class="catalog-pagination__page">{{ t('Página') }} {{ currentPage }}</span>
+
+        <div class="catalog-pagination__numbers">
+          <button
+            v-for="(p, idx) in paginationRange"
+            :key="idx"
+            class="btn catalog-pagination__btn"
+            :class="{
+              'btn--primary': p === currentPage,
+              'btn--secondary': p !== currentPage && p !== '...',
+              'catalog-pagination__dots': p === '...',
+            }"
+            :disabled="p === '...'"
+            @click="p !== '...' && goToPage(p)"
+          >
+            {{ p }}
+          </button>
+        </div>
+
         <button
-          @click="nextPage"
+          @click="goToPage(currentPage + 1)"
           class="btn btn--secondary"
           :disabled="!hasNextPage"
           :class="{ 'btn--disabled': !hasNextPage }"
@@ -347,10 +400,28 @@ onMounted(() => {
   align-items: center;
   gap: 2rem;
   margin-top: 1rem;
+  flex-wrap: wrap;
 }
 
-.catalog-pagination__page {
-  font-weight: 600;
+.catalog-pagination__numbers {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.catalog-pagination__btn {
+  padding: 0.5rem 0.8rem;
+  font-size: 0.9rem;
+  min-width: 38px;
+}
+
+.catalog-pagination__dots {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: var(--color-text-secondary);
+  cursor: default;
+  pointer-events: none;
 }
 
 @media (max-width: 768px) {

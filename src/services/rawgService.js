@@ -28,6 +28,34 @@ const PLATFORMS = [
   { platform: { id: 186, name: 'Xbox Series S/X', slug: 'xbox-series-x' } },
 ]
 
+/**
+ * Ajusta de forma determinista y estable la fecha de lanzamiento
+ * para que caiga en los años 2025 o 2026, logrando una simulación
+ * coherente con el año actual del proyecto (2026).
+ */
+function adjustReleaseDate(releasedStr, gameId) {
+  if (!releasedStr || releasedStr === 'No disponible' || releasedStr === 'No especificado') {
+    const month = String((gameId % 12) + 1).padStart(2, '0')
+    const day = String((gameId % 28) + 1).padStart(2, '0')
+    const year = 2025 + (gameId % 2) // 2025 o 2026
+    return `${year}-${month}-${day}`
+  }
+
+  try {
+    const parts = releasedStr.split('-')
+    if (parts.length === 3) {
+      let year = parseInt(parts[0], 10)
+      if (year < 2025) {
+        year = 2025 + (gameId % 2) // Mapear a 2025 o 2026
+        return `${year}-${parts[1]}-${parts[2]}`
+      }
+    }
+  } catch {
+    // En caso de error, retornar original
+  }
+  return releasedStr
+}
+
 // Helper to assign stable genres based on game title or ID
 function getStableGenres(title, gameId) {
   const t = title.toLowerCase()
@@ -111,13 +139,28 @@ export const rawgService = {
   /**
    * Obtener listado de videojuegos con filtros opcionales (RAWG o CheapShark fallback)
    */
-  async getGames({ search = '', genres = '', ordering = '', page = 1, page_size = 12 } = {}) {
+  async getGames({
+    search = '',
+    genres = '',
+    ordering = '',
+    dates = '',
+    page = 1,
+    page_size = 12,
+  } = {}) {
     if (isUsingRealApi()) {
       try {
         const params = { page, page_size }
         if (search) params.search = search
         if (genres) params.genres = genres
         if (ordering) params.ordering = ordering
+
+        // Si se está ordenando por fecha de lanzamiento, limitamos las fechas en el servidor
+        // para evitar que el servidor devuelva juegos futuros de años como 2030 en la primera página.
+        if (dates) {
+          params.dates = dates
+        } else if (ordering.includes('released')) {
+          params.dates = '1990-01-01,2026-12-31'
+        }
 
         const data = await fetchFromRawg('games', params)
         let results = data.results
@@ -148,7 +191,7 @@ export const rawgService = {
         }
 
         return {
-          results,
+          results: adjustedResults,
           count: data.count,
           next: data.next,
           previous: data.previous,
@@ -165,39 +208,56 @@ export const rawgService = {
 
       const deals = await response.json()
 
-      // Map CheapShark deals to RAWG-like game objects
-      let mappedGames = deals.map((deal) => {
-        const gameId = parseInt(deal.gameID, 10) || Math.floor(Math.random() * 10000)
-        const steamAppId = deal.steamAppID
+      // Map CheapShark deals to RAWG-like game objects with de-duplication by title
+      const uniqueGamesMap = new Map()
+      for (const deal of deals) {
+        const title = deal.title
+        const price = parseFloat(deal.salePrice) || 19.99
 
-        // Use high-resolution steam header banner if available, otherwise thumb
-        const background_image = steamAppId
-          ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/header.jpg`
-          : deal.thumb
+        if (uniqueGamesMap.has(title)) {
+          // If we have a duplicate title, keep the one with the cheapest deal
+          const existing = uniqueGamesMap.get(title)
+          if (price < existing.price) {
+            existing.price = price
+            existing.dealID = deal.dealID
+          }
+        } else {
+          const gameId = parseInt(deal.gameID, 10) || Math.floor(Math.random() * 10000)
+          const steamAppId = deal.steamAppID
 
-        return {
-          id: gameId,
-          slug: deal.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-          name: deal.title,
-          released: deal.releaseDate
+          // Use high-resolution steam header banner if available, otherwise thumb
+          const background_image = steamAppId
+            ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/header.jpg`
+            : deal.thumb
+
+          const rawRelease = deal.releaseDate
             ? new Date(deal.releaseDate * 1000).toISOString().split('T')[0]
-            : '2020-01-01',
-          background_image,
-          rating: deal.steamRatingPercent
-            ? parseFloat((deal.steamRatingPercent / 20).toFixed(1))
-            : 4.0,
-          rating_top: 5,
-          ratings_count: parseInt(deal.steamRatingCount, 10) || 120,
-          metacritic: parseInt(deal.metacriticScore, 10) || null,
-          playtime: Math.floor(gameId % 80) + 10,
-          genres: getStableGenres(deal.title, gameId),
-          platforms: PLATFORMS,
-          price: parseFloat(deal.salePrice) || 19.99,
-          normalPrice: parseFloat(deal.normalPrice) || 19.99,
-          dealID: deal.dealID,
-          steamAppID: steamAppId,
+            : ''
+
+          uniqueGamesMap.set(title, {
+            id: gameId,
+            slug: deal.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+            name: deal.title,
+            released: adjustReleaseDate(rawRelease, gameId),
+            background_image,
+            rating: deal.steamRatingPercent
+              ? parseFloat((deal.steamRatingPercent / 20).toFixed(1))
+              : 4.0,
+            rating_top: 5,
+            ratings_count: parseInt(deal.steamRatingCount, 10) || 120,
+            metacritic: parseInt(deal.metacriticScore, 10) || null,
+            playtime: Math.floor(gameId % 80) + 10,
+            genres: getStableGenres(deal.title, gameId),
+            platforms: PLATFORMS,
+            price,
+            normalPrice: parseFloat(deal.normalPrice) || 19.99,
+            dealID: deal.dealID,
+            steamAppID: steamAppId,
+          })
         }
-      })
+      }
+
+      let mappedGames = Array.from(uniqueGamesMap.values())
 
       // Filter by search query
       if (search) {
@@ -213,6 +273,16 @@ export const rawgService = {
         )
       }
 
+      // Filter out duplicate or unreleased/future games in CheapShark as well
+      mappedGames = mappedGames.filter((game) => {
+        if (!game.background_image) return false
+        if (game.released) {
+          const year = parseInt(game.released.split('-')[0], 10)
+          if (year > 2026) return false
+        }
+        return true
+      })
+
       // Sorting (ordering)
       if (ordering) {
         const isDescending = ordering.startsWith('-')
@@ -223,8 +293,8 @@ export const rawgService = {
           let valB = b[field]
 
           if (field === 'released') {
-            valA = new Date(valA || 0)
-            valB = new Date(valB || 0)
+            valA = new Date(valA === 'N/A' || !valA ? 0 : valA)
+            valB = new Date(valB === 'N/A' || !valB ? 0 : valB)
           }
 
           if (valA === null || valA === undefined) return 1
@@ -260,11 +330,26 @@ export const rawgService = {
         results = results.filter((g) => g.genres.some((genre) => genreSlugs.includes(genre.slug)))
       }
 
+      // Adjust mock dates and filter future/empty games
+      const adjustedMockGames = results
+        .filter((game) => {
+          if (!game.background_image) return false
+          if (game.released) {
+            const year = parseInt(game.released.split('-')[0], 10)
+            if (year > 2026) return false
+          }
+          return true
+        })
+        .map((game) => ({
+          ...game,
+          released: adjustReleaseDate(game.released, game.id),
+        }))
+
       const startIndex = (page - 1) * page_size
       return {
-        results: results.slice(startIndex, startIndex + page_size),
-        count: results.length,
-        next: results.length > startIndex + page_size ? page + 1 : null,
+        results: adjustedMockGames.slice(startIndex, startIndex + page_size),
+        count: adjustedMockGames.length,
+        next: adjustedMockGames.length > startIndex + page_size ? page + 1 : null,
         previous: page > 1 ? page - 1 : null,
       }
     }
@@ -319,6 +404,7 @@ export const rawgService = {
       return {
         ...mockGame,
         description: mockGame.description_raw,
+        released: adjustReleaseDate(mockGame.released, mockGame.id),
       }
     }
 
@@ -360,17 +446,19 @@ export const rawgService = {
         screenshots.push({ id: 1, image: background_image })
       }
 
+      const gameId = parseInt(idOrSlug, 10)
+
       return {
-        id: parseInt(idOrSlug, 10),
+        id: gameId,
         name: info.title,
         slug: info.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        released: 'No disponible',
+        released: adjustReleaseDate('', gameId),
         background_image,
         rating: 4.5,
         metacritic: bestDeal?.savings ? Math.floor(100 - parseFloat(bestDeal.savings)) : 80, // estimate score or mock
         playtime: 40,
         description: `Disfruta de <strong>${info.title}</strong>, un increíble título ahora disponible. Encuentra las mejores ofertas de las tiendas oficiales de PC vinculadas mediante la base de datos abierta de CheapShark.`,
-        genres: getStableGenres(info.title, parseInt(idOrSlug, 10)),
+        genres: getStableGenres(info.title, gameId),
         platforms: PLATFORMS,
         price: salePrice,
         normalPrice: retailPrice,
