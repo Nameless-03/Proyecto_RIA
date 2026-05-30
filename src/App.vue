@@ -50,123 +50,36 @@ onMounted(() => {
             LITTLEBOX GAMES
           </h4>
           <p class="app-footer__text">
-            {{
-              authStore.preferences.language === 'en'
-                ? 'Project developed for the University Laboratory of RIA Workshop.'
-                : authStore.preferences.language === 'pt'
-                  ? 'Projeto desenvolvido para o Laboratório Universitário de Oficina de RIA.'
-                  : authStore.preferences.language === 'fr'
-                    ? "Projet développé pour le Laboratoire Universitaire d'Atelier de RIA."
-                    : authStore.preferences.language === 'de'
-                      ? 'Projekt entwickelt für das Universitätslabor des RIA-Workshops.'
-                      : authStore.preferences.language === 'it'
-                        ? 'Progetto sviluppato per il Laboratorio Universitario del Laboratorio di RIA.'
-                        : 'Proyecto desarrollado para el Laboratorio Universitario de Taller de RIA.'
-            }}
+            {{ t('Proyecto desarrollado para el Laboratorio Universitario de Taller de RIA.') }}
           </p>
         </div>
 
         <div class="app-footer__section">
           <h4 class="app-footer__title">
-            {{
-              authStore.preferences.language === 'en'
-                ? 'Quick Links'
-                : authStore.preferences.language === 'pt'
-                  ? 'Links rápidos'
-                  : authStore.preferences.language === 'fr'
-                    ? 'Liens rapides'
-                    : authStore.preferences.language === 'de'
-                      ? 'Schnelllinks'
-                      : authStore.preferences.language === 'it'
-                        ? 'Link rapidi'
-                        : 'Enlaces rápidos'
-            }}
+            {{ t('Enlaces rápidos') }}
           </h4>
           <div class="app-footer__links">
-            <RouterLink to="/" class="app-footer__link">{{ t('nav.home') }}</RouterLink>
-            <RouterLink to="/catalog" class="app-footer__link">{{ t('nav.catalog') }}</RouterLink>
-            <RouterLink to="/favorites" class="app-footer__link">{{
-              t('nav.favorites')
-            }}</RouterLink>
-            <RouterLink to="/profile" class="app-footer__link">{{ t('nav.profile') }}</RouterLink>
+            <RouterLink to="/" class="app-footer__link">{{ t('Inicio') }}</RouterLink>
+            <RouterLink to="/catalog" class="app-footer__link">{{ t('Catálogo') }}</RouterLink>
+            <RouterLink to="/favorites" class="app-footer__link">{{ t('Favoritos') }}</RouterLink>
+            <RouterLink to="/profile" class="app-footer__link">{{ t('Perfil') }}</RouterLink>
           </div>
         </div>
 
         <div class="app-footer__section">
           <h4 class="app-footer__title">
-            {{
-              authStore.preferences.language === 'en'
-                ? 'API Status'
-                : authStore.preferences.language === 'pt'
-                  ? 'Estado da API'
-                  : authStore.preferences.language === 'fr'
-                    ? 'Statut API'
-                    : authStore.preferences.language === 'de'
-                      ? 'API-Status'
-                      : authStore.preferences.language === 'it'
-                        ? 'Stato API'
-                        : 'Estado API'
-            }}
+            {{ t('Estado API') }}
           </h4>
           <p class="app-footer__text">
-            {{
-              authStore.preferences.language === 'en'
-                ? 'Mode:'
-                : authStore.preferences.language === 'pt'
-                  ? 'Modo:'
-                  : authStore.preferences.language === 'fr'
-                    ? 'Mode :'
-                    : authStore.preferences.language === 'de'
-                      ? 'Modus:'
-                      : authStore.preferences.language === 'it'
-                        ? 'Modalità:'
-                        : 'Modo:'
-            }}
+            {{ t('Modo:') }}
             <strong :class="authStore.rawgApiKey ? 'text-success' : 'text-warning'">
-              {{
-                authStore.rawgApiKey
-                  ? authStore.preferences.language === 'en'
-                    ? 'RAWG API Connected'
-                    : authStore.preferences.language === 'pt'
-                      ? 'RAWG API Conectada'
-                      : authStore.preferences.language === 'fr'
-                        ? 'RAWG API Connectée'
-                        : authStore.preferences.language === 'de'
-                          ? 'RAWG API Verbunden'
-                          : authStore.preferences.language === 'it'
-                            ? 'RAWG API Connessa'
-                            : 'RAWG API Conectada'
-                  : authStore.preferences.language === 'en'
-                    ? 'Simulated (Offline)'
-                    : authStore.preferences.language === 'pt'
-                      ? 'Simulado (Offline)'
-                      : authStore.preferences.language === 'fr'
-                        ? 'Simulé (Hors ligne)'
-                        : authStore.preferences.language === 'de'
-                          ? 'Simuliert (Offline)'
-                          : authStore.preferences.language === 'it'
-                            ? 'Simulato (Offline)'
-                            : 'Simulado (Offline)'
-              }}
+              {{ authStore.rawgApiKey ? t('RAWG API Conectada') : t('Simulado (Offline)') }}
             </strong>
           </p>
         </div>
       </div>
       <div class="app-footer__copyright">
-        © 2026 LittleBox Games.
-        {{
-          authStore.preferences.language === 'en'
-            ? 'All rights reserved.'
-            : authStore.preferences.language === 'pt'
-              ? 'Todos os direitos reservados.'
-              : authStore.preferences.language === 'fr'
-                ? 'Tous droits réservés.'
-                : authStore.preferences.language === 'de'
-                  ? 'Alle Rechte vorbehalten.'
-                  : authStore.preferences.language === 'it'
-                    ? 'Tutti i diritti riservati.'
-                    : 'Todos los derechos reservados.'
-        }}
+        © 2026 LittleBox Games. {{ t('Todos los derechos reservados.') }}
       </div>
     </footer>
   </div>

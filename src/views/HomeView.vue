@@ -1,16 +1,21 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { rawgService } from '../services/rawgService'
-import { useGamesStore } from '../stores/games'
+import GameCard from '../components/GameCard.vue'
+import { useFavorites } from '../composables/useFavorites'
 import { useI18n } from '../composables/useI18n'
 
-const gamesStore = useGamesStore()
-const { t } = useI18n()
+const { isFavorite, toggleFavorite } = useFavorites()
 const featuredGames = ref([])
 const loading = ref(true)
 const error = ref(null)
 
+const discoverCategories = ref([])
+const discoverLoading = ref(true)
+const discoverError = ref(null)
+
 onMounted(async () => {
+  // Cargar videojuegos destacados
   try {
     const data = await rawgService.getGames({ page_size: 3 })
     featuredGames.value = data.results
@@ -19,6 +24,42 @@ onMounted(async () => {
     console.error(err)
   } finally {
     loading.value = false
+  }
+
+  // Cargar sección Descubre (categorías aleatorias con juegos aleatorios)
+  try {
+    const genres = await rawgService.getGenres()
+    if (genres && genres.length > 0) {
+      // Barajar y elegir 2 géneros al azar
+      const shuffledGenres = [...genres].sort(() => 0.5 - Math.random())
+      const selectedGenres = shuffledGenres.slice(0, 2)
+
+      const categoriesData = []
+      for (const genre of selectedGenres) {
+        // Pedir 12 juegos para tener una buena muestra que barajar
+        const data = await rawgService.getGames({
+          genres: genre.slug,
+          page_size: 12,
+        })
+
+        if (data && data.results && data.results.length > 0) {
+          // Barajar juegos obtenidos y tomar 4 al azar
+          const shuffledGames = [...data.results].sort(() => 0.5 - Math.random())
+          categoriesData.push({
+            id: genre.id,
+            name: genre.name,
+            slug: genre.slug,
+            games: shuffledGames.slice(0, 4),
+          })
+        }
+      }
+      discoverCategories.value = categoriesData
+    }
+  } catch (err) {
+    discoverError.value = 'Error al cargar las categorías de descubrimiento.'
+    console.error(err)
+  } finally {
+    discoverLoading.value = false
   }
 })
 </script>
@@ -54,55 +95,120 @@ onMounted(async () => {
       </div>
 
       <div v-else class="home-featured__grid">
-        <div v-for="game in featuredGames" :key="game.id" class="game-card">
-          <div class="game-card__image-container">
-            <img :src="game.background_image" :alt="game.name" class="game-card__image" />
-            <span v-if="game.metacritic" class="game-card__metacritic">
-              {{ game.metacritic }}
-            </span>
-          </div>
-          <div class="game-card__content">
-            <h3 class="game-card__title">{{ game.name }}</h3>
-            <div class="game-card__meta">
-              <span class="game-card__genre">
-                {{ game.genres?.[0]?.name || 'Videojuego' }}
-              </span>
-              <span class="game-card__price">
-                ${{
-                  game.price ? game.price.toFixed(2) : (((game.id % 6) + 1) * 10 - 0.01).toFixed(2)
-                }}
-              </span>
-            </div>
-            <div class="game-card__actions">
-              <RouterLink :to="`/game/${game.id}`" class="btn btn--secondary btn--primary-hover">
-                {{ t('catalog.detailsBtn') }}
-              </RouterLink>
-              <button
-                @click="gamesStore.toggleFavorite(game)"
-                class="btn btn--outline"
-                :class="{ 'btn--active': gamesStore.isFavorite(game.id) }"
-                :title="t('nav.favorites')"
+        <GameCard v-for="game in featuredGames" :key="game.id" :game="game">
+          <template #actions>
+            <RouterLink :to="`/game/${game.id}`" class="btn btn--secondary btn--primary-hover">
+              Ver Detalles
+            </RouterLink>
+            <button
+              @click="toggleFavorite(game)"
+              class="btn btn--outline"
+              :class="{ 'btn--active': isFavorite(game.id) }"
+              title="Añadir a favoritos"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="heart-icon"
+                :class="{ 'heart-icon--filled': isFavorite(game.id) }"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="heart-icon"
-                  :class="{ 'heart-icon--filled': gamesStore.isFavorite(game.id) }"
+                <path
+                  d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                ></path>
+              </svg>
+              Fav
+            </button>
+          </template>
+        </GameCard>
+      </div>
+    </section>
+
+    <!-- Discover Section (Descubre) -->
+    <section class="home-discover container">
+      <div class="home-discover__header">
+        <h2 class="home-discover__title">Descubre</h2>
+        <p class="home-discover__subtitle">
+          Explora categorías nuevas y descubre tu próximo titulo favorito.
+        </p>
+      </div>
+
+      <div v-if="discoverLoading" class="home-discover__loading">
+        Cargando categorías recomendadas...
+      </div>
+
+      <div v-else-if="discoverError" class="home-discover__error">
+        {{ discoverError }}
+      </div>
+
+      <div v-else class="home-discover__categories">
+        <div
+          v-for="category in discoverCategories"
+          :key="category.id"
+          class="home-discover__category"
+        >
+          <h3 class="home-discover__category-title">
+            <!-- Gamepad category icon outline -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--color-primary)"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="home-discover__category-icon"
+            >
+              <line x1="6" y1="12" x2="10" y2="12"></line>
+              <line x1="8" y1="10" x2="8" y2="14"></line>
+              <line x1="15" y1="13" x2="15.01" y2="13"></line>
+              <line x1="18" y1="11" x2="18.01" y2="11"></line>
+              <rect x="2" y="6" width="20" height="12" rx="3"></rect>
+            </svg>
+            Categoría: {{ category.name }}
+          </h3>
+
+          <div class="home-discover__grid">
+            <GameCard v-for="game in category.games" :key="game.id" :game="game">
+              <template #actions>
+                <RouterLink :to="`/game/${game.id}`" class="btn btn--secondary btn--primary-hover">
+                  Ver Detalles
+                </RouterLink>
+                <button
+                  @click="toggleFavorite(game)"
+                  class="btn btn--outline"
+                  :class="{ 'btn--active': isFavorite(game.id) }"
+                  title="Añadir a favoritos"
                 >
-                  <path
-                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                  ></path>
-                </svg>
-                {{ t('home.favBtn') }}
-              </button>
-            </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="heart-icon"
+                    :class="{ 'heart-icon--filled': isFavorite(game.id) }"
+                  >
+                    <path
+                      d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                    ></path>
+                  </svg>
+                  Fav
+                </button>
+              </template>
+            </GameCard>
           </div>
         </div>
       </div>
@@ -205,109 +311,87 @@ onMounted(async () => {
   gap: 2rem;
 }
 
-/* Game Card (BEM) */
-.game-card {
+/* Discover Section */
+.home-discover {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  margin-top: 1rem;
+}
+
+.home-discover__header {
+  border-left: 4px solid var(--color-primary);
+  padding-left: 0.75rem;
+}
+
+.home-discover__title {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.home-discover__subtitle {
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  margin-top: 0.25rem;
+}
+
+.home-discover__loading,
+.home-discover__error {
+  text-align: center;
+  padding: 3rem;
   background-color: var(--color-bg-secondary);
   border-radius: var(--border-radius-lg);
-  border: 1px solid var(--color-border);
-  overflow: hidden;
-  transition: var(--transition-smooth);
-  display: flex;
-  flex-direction: column;
-}
-
-.game-card:hover {
-  transform: translateY(-5px);
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-md);
-}
-
-.game-card__image-container {
-  position: relative;
-  height: 180px;
-  overflow: hidden;
-}
-
-.game-card__image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: var(--transition-smooth);
-}
-
-.game-card:hover .game-card__image {
-  transform: scale(1.05);
-}
-
-.game-card__metacritic {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background-color: rgba(0, 0, 0, 0.85);
-  color: var(--color-accent-green);
-  border: 1px solid var(--color-accent-green);
-  font-size: 0.85rem;
-  font-weight: 700;
-  padding: 0.2rem 0.5rem;
-  border-radius: var(--border-radius-sm);
-}
-
-.game-card__content {
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  flex-grow: 1;
-}
-
-.game-card__title {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.game-card__meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.game-card__genre {
-  font-size: 0.85rem;
   color: var(--color-text-secondary);
-  background-color: var(--color-bg-tertiary);
-  padding: 0.2rem 0.6rem;
-  border-radius: var(--border-radius-sm);
 }
 
-.game-card__price {
-  font-weight: 700;
+.home-discover__categories {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+.home-discover__category {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.home-discover__category-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   color: #ffffff;
 }
 
-body.theme-light .game-card__price {
+.home-discover__category-icon {
+  margin-top: 2px;
+}
+
+body.theme-light .home-discover__category-title {
   color: var(--color-text-primary);
 }
 
-.game-card__actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: auto;
-}
-
-.game-card__actions .btn {
-  flex: 1;
-  font-size: 0.9rem;
-  padding: 0.5rem;
+.home-discover__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
 }
 
 .btn--active {
   background-color: var(--color-accent-purple-light);
   border-color: var(--color-primary);
   color: var(--color-primary);
+}
+
+/* Custom buttons */
+.btn--primary-hover:hover {
+  background-color: var(--color-primary) !important;
+  color: #ffffff !important;
+  border-color: var(--color-primary) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(145, 70, 255, 0.3);
 }
 
 @media (max-width: 768px) {
