@@ -2,8 +2,10 @@
 import { ref, onMounted } from 'vue'
 import { rawgService } from '../services/rawgService'
 import { useGamesStore } from '../stores/games'
+import { useI18n } from '../composables/useI18n'
 
 const gamesStore = useGamesStore()
+const { t } = useI18n()
 const featuredGames = ref([])
 const loading = ref(true)
 const error = ref(null)
@@ -13,7 +15,7 @@ onMounted(async () => {
     const data = await rawgService.getGames({ page_size: 3 })
     featuredGames.value = data.results
   } catch (err) {
-    error.value = 'Error al cargar los videojuegos destacados.'
+    error.value = t('home.errorFeatured')
     console.error(err)
   } finally {
     loading.value = false
@@ -26,23 +28,26 @@ onMounted(async () => {
     <!-- Hero Banner (Steam/Twitch vibe) -->
     <header class="home-hero">
       <div class="home-hero__content">
-        <h1 class="home-hero__title">Descubre tu próximo juego favorito</h1>
+        <h1 class="home-hero__title">{{ t('home.title') }}</h1>
         <p class="home-hero__subtitle">
-          Explora miles de títulos, gestiona tu biblioteca y compra de forma segura con la mejor
-          experiencia gaming.
+          {{ t('home.subtitle') }}
         </p>
         <div class="home-hero__actions">
-          <RouterLink to="/catalog" class="btn btn--primary"> Explorar Catálogo </RouterLink>
-          <RouterLink to="/profile" class="btn btn--secondary"> Mi Perfil </RouterLink>
+          <RouterLink to="/catalog" class="btn btn--primary">
+            {{ t('home.exploreBtn') }}
+          </RouterLink>
+          <RouterLink to="/profile" class="btn btn--secondary">
+            {{ t('home.profileBtn') }}
+          </RouterLink>
         </div>
       </div>
     </header>
 
     <!-- Featured Games Section -->
     <section class="home-featured container">
-      <h2 class="home-featured__title">Títulos Destacados</h2>
+      <h2 class="home-featured__title">{{ t('home.featuredTitle') }}</h2>
 
-      <div v-if="loading" class="home-featured__loading">Cargando juegos destacados...</div>
+      <div v-if="loading" class="home-featured__loading">{{ t('home.loadingFeatured') }}</div>
 
       <div v-else-if="error" class="home-featured__error">
         {{ error }}
@@ -70,13 +75,13 @@ onMounted(async () => {
             </div>
             <div class="game-card__actions">
               <RouterLink :to="`/game/${game.id}`" class="btn btn--secondary btn--primary-hover">
-                Ver Detalles
+                {{ t('catalog.detailsBtn') }}
               </RouterLink>
               <button
                 @click="gamesStore.toggleFavorite(game)"
                 class="btn btn--outline"
                 :class="{ 'btn--active': gamesStore.isFavorite(game.id) }"
-                title="Añadir a favoritos"
+                :title="t('nav.favorites')"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -95,7 +100,7 @@ onMounted(async () => {
                     d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
                   ></path>
                 </svg>
-                Fav
+                {{ t('home.favBtn') }}
               </button>
             </div>
           </div>

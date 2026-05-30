@@ -3,21 +3,76 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { rawgService } from '../services/rawgService'
 import { useGamesStore } from '../stores/games'
+import { useAuthStore } from '../stores/auth'
+import { translateText } from '../services/translateService'
+import { useI18n } from '../composables/useI18n'
 
 const route = useRoute()
 const router = useRouter()
 const gamesStore = useGamesStore()
+const authStore = useAuthStore()
+const { t } = useI18n()
 
 const game = ref(null)
 const loading = ref(true)
 const error = ref(null)
 
+// Translation states
+const originalDescription = ref('')
+const translatedDescription = ref('')
+const isTranslated = ref(false)
+const translating = ref(false)
+const showOriginal = ref(false)
+
+const getLanguageName = (code) => {
+  const mapping = {
+    es: 'Español',
+    en: 'Inglés',
+    pt: 'Portugués',
+    fr: 'Francés',
+    de: 'Alemán',
+    it: 'Italiano',
+  }
+  return mapping[code] || code
+}
+
+const toggleOriginal = () => {
+  showOriginal.value = !showOriginal.value
+  if (showOriginal.value) {
+    game.value.description = originalDescription.value
+  } else {
+    game.value.description = translatedDescription.value
+  }
+}
+
 onMounted(async () => {
   try {
     const gameId = route.params.id
-    game.value = await rawgService.getGameDetail(gameId)
+    const gameData = await rawgService.getGameDetail(gameId)
+    game.value = gameData
+
+    const desc = gameData.description || gameData.description_raw || ''
+    originalDescription.value = desc
+
+    // Attempt translation if preference is not English and we have description content
+    const targetLang = authStore.preferences.language || 'es'
+    if (targetLang !== 'en' && desc) {
+      translating.value = true
+      try {
+        const translated = await translateText(desc, targetLang, 'en')
+        if (translated && translated !== desc) {
+          translatedDescription.value = translated
+          game.value.description = translated
+          isTranslated.value = true
+        }
+      } catch (err) {
+        console.warn('Failed to translate description:', err)
+      } finally {
+        translating.value = false
+      }
+    }
   } catch (err) {
-    error.value = 'No se pudo cargar la información del videojuego.'
+    error.value = t('details.error')
     console.error(err)
   } finally {
     loading.value = false
@@ -43,10 +98,10 @@ onMounted(async () => {
         <line x1="19" y1="12" x2="5" y2="12"></line>
         <polyline points="12 19 5 12 12 5"></polyline>
       </svg>
-      Volver atrás
+      {{ t('details.backBtn') }}
     </button>
 
-    <div v-if="loading" class="game-detail__loading">Cargando detalles del juego...</div>
+    <div v-if="loading" class="game-detail__loading">{{ t('details.loading') }}</div>
 
     <div v-else-if="error" class="game-detail__error">
       {{ error }}
@@ -65,7 +120,35 @@ onMounted(async () => {
             <span class="game-detail__tag" v-for="g in game.genres" :key="g.id">{{ g.name }}</span>
           </div>
           <h1 class="game-detail__title">{{ game.name }}</h1>
-          <p class="game-detail__release">Publicado: {{ game.released || 'No especificado' }}</p>
+          <p class="game-detail__release">
+            {{
+              authStore.preferences.language === 'en'
+                ? 'Published:'
+                : authStore.preferences.language === 'pt'
+                  ? 'Publicado:'
+                  : authStore.preferences.language === 'fr'
+                    ? 'Publié :'
+                    : authStore.preferences.language === 'de'
+                      ? 'Veröffentlicht:'
+                      : authStore.preferences.language === 'it'
+                        ? 'Pubblicato:'
+                        : 'Publicado:'
+            }}
+            {{
+              game.released ||
+              (authStore.preferences.language === 'en'
+                ? 'Not specified'
+                : authStore.preferences.language === 'pt'
+                  ? 'Não especificado'
+                  : authStore.preferences.language === 'fr'
+                    ? 'Non spécifié'
+                    : authStore.preferences.language === 'de'
+                      ? 'Nicht angegeben'
+                      : authStore.preferences.language === 'it'
+                        ? 'Non specificato'
+                        : 'No especificado')
+            }}
+          </p>
         </div>
       </header>
 
@@ -74,10 +157,75 @@ onMounted(async () => {
         <!-- Details Column -->
         <main class="game-detail__main">
           <section class="game-detail__section">
-            <h2 class="game-detail__section-title">Sobre el Juego</h2>
+            <div class="game-detail__section-header">
+              <h2 class="game-detail__section-title">{{ t('details.about') }}</h2>
+
+              <!-- Translation Indicator / Button -->
+              <div v-if="isTranslated" class="translation-status">
+                <span class="translation-status__badge">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="sparkle-icon"
+                  >
+                    <polygon
+                      points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+                    ></polygon>
+                  </svg>
+                  {{ t('details.translated') }}
+                  {{ getLanguageName(authStore.preferences.language) }}
+                </span>
+                <button
+                  @click="toggleOriginal"
+                  class="btn btn--secondary btn--xs translation-status__btn"
+                >
+                  {{ showOriginal ? t('details.verTraducido') : t('details.verOriginal') }}
+                </button>
+              </div>
+              <div v-else-if="translating" class="translation-status">
+                <span class="translation-status__loading">
+                  <span class="spinner"></span>
+                  {{
+                    authStore.preferences.language === 'en'
+                      ? 'Translating description...'
+                      : authStore.preferences.language === 'pt'
+                        ? 'Traduzindo descrição...'
+                        : authStore.preferences.language === 'fr'
+                          ? 'Traduction de la description...'
+                          : authStore.preferences.language === 'de'
+                            ? 'Beschreibung wird übersetzt...'
+                            : authStore.preferences.language === 'it'
+                              ? 'Traduzione della descrizione...'
+                              : 'Traduciendo descripción...'
+                  }}
+                </span>
+              </div>
+            </div>
+
             <div
               class="game-detail__description"
-              v-html="game.description || game.description_raw || 'No hay descripción disponible.'"
+              v-html="
+                game.description ||
+                game.description_raw ||
+                (authStore.preferences.language === 'en'
+                  ? 'No description available.'
+                  : authStore.preferences.language === 'pt'
+                    ? 'Nenhuma descrição disponível.'
+                    : authStore.preferences.language === 'fr'
+                      ? 'Aucune description disponible.'
+                      : authStore.preferences.language === 'de'
+                        ? 'Keine Beschreibung verfügbar.'
+                        : authStore.preferences.language === 'it'
+                          ? 'Nessuna descrizione disponibile.'
+                          : 'No hay descripción disponible.')
+              "
             ></div>
           </section>
 
@@ -86,7 +234,7 @@ onMounted(async () => {
             v-if="game.short_screenshots && game.short_screenshots.length > 0"
             class="game-detail__section"
           >
-            <h2 class="game-detail__section-title">Capturas de Pantalla</h2>
+            <h2 class="game-detail__section-title">{{ t('details.screenshots') }}</h2>
             <div class="game-detail__screenshots">
               <img
                 v-for="ss in game.short_screenshots.filter((s) => s.id !== -1)"
@@ -103,7 +251,7 @@ onMounted(async () => {
         <aside class="game-detail__sidebar">
           <div class="purchase-box">
             <div class="purchase-box__price-row">
-              <span class="purchase-box__label">Precio Estimado</span>
+              <span class="purchase-box__label">{{ t('details.priceLabel') }}</span>
               <span class="purchase-box__price"
                 >${{
                   game.price ? game.price.toFixed(2) : (((game.id % 6) + 1) * 10 - 0.01).toFixed(2)
@@ -133,7 +281,7 @@ onMounted(async () => {
                   <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
                 </svg>
                 <span>{{
-                  gamesStore.isInCart(game.id) ? 'En el Carrito' : 'Agregar al Carrito'
+                  gamesStore.isInCart(game.id) ? t('details.inCart') : t('details.addToCart')
                 }}</span>
               </button>
 
@@ -160,7 +308,7 @@ onMounted(async () => {
                   ></path>
                 </svg>
                 <span>{{
-                  gamesStore.isFavorite(game.id) ? 'En Favoritos' : 'Añadir a Favoritos'
+                  gamesStore.isFavorite(game.id) ? t('details.inFav') : t('details.addFav')
                 }}</span>
               </button>
             </div>
@@ -199,17 +347,30 @@ onMounted(async () => {
                     points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
                   ></polygon>
                 </svg>
-                {{ game.rating }} / 5 ({{ game.ratings_count }} votos)
+                {{ game.rating }} / 5 ({{ game.ratings_count }}
+                {{
+                  authStore.preferences.language === 'en'
+                    ? 'votes'
+                    : authStore.preferences.language === 'pt'
+                      ? 'votos'
+                      : authStore.preferences.language === 'fr'
+                        ? 'votes'
+                        : authStore.preferences.language === 'de'
+                          ? 'Stimmen'
+                          : authStore.preferences.language === 'it'
+                            ? 'voti'
+                            : 'votos'
+                }})
               </span>
             </div>
 
             <div v-if="game.playtime" class="specs-box__row">
-              <span class="specs-box__label">Tiempo de juego:</span>
-              <span>{{ game.playtime }} horas</span>
+              <span class="specs-box__label">{{ t('details.playtime') }}</span>
+              <span>{{ game.playtime }} {{ t('details.hours') }}</span>
             </div>
 
             <div v-if="game.platforms" class="specs-box__row specs-box__row--vertical">
-              <span class="specs-box__label">Plataformas:</span>
+              <span class="specs-box__label">{{ t('details.platforms') }}</span>
               <div class="specs-box__platforms">
                 <span
                   v-for="p in game.platforms"
@@ -222,12 +383,12 @@ onMounted(async () => {
             </div>
 
             <div v-if="game.developers && game.developers.length > 0" class="specs-box__row">
-              <span class="specs-box__label">Desarrollador:</span>
+              <span class="specs-box__label">{{ t('details.developer') }}</span>
               <span>{{ game.developers.map((d) => d.name).join(', ') }}</span>
             </div>
 
             <div v-if="game.publishers && game.publishers.length > 0" class="specs-box__row">
-              <span class="specs-box__label">Distribuidor:</span>
+              <span class="specs-box__label">{{ t('details.publisher') }}</span>
               <span>{{ game.publishers.map((p) => p.name).join(', ') }}</span>
             </div>
           </div>
@@ -533,6 +694,82 @@ body.theme-light .purchase-box__price {
 
   .game-detail__title {
     font-size: 2rem;
+  }
+}
+
+/* Translation UI Styles */
+.game-detail__section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0.75rem;
+}
+
+.game-detail__section-header .game-detail__section-title {
+  margin-bottom: 0;
+  border-left: 4px solid var(--color-primary);
+  padding-left: 0.75rem;
+}
+
+.translation-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.translation-status__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-accent-green);
+  background-color: rgba(0, 245, 212, 0.08);
+  border: 1px solid rgba(0, 245, 212, 0.2);
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--border-radius-sm);
+}
+
+.sparkle-icon {
+  fill: rgba(0, 245, 212, 0.2);
+  stroke: var(--color-accent-green);
+}
+
+.btn--xs {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: var(--border-radius-sm);
+}
+
+.translation-status__btn {
+  font-weight: 600;
+}
+
+.translation-status__loading {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>

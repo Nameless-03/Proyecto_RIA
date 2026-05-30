@@ -2,8 +2,10 @@
 import { ref, onMounted } from 'vue'
 import { rawgService } from '../services/rawgService'
 import { useGamesStore } from '../stores/games'
+import { useI18n } from '../composables/useI18n'
 
 const gamesStore = useGamesStore()
+const { t } = useI18n()
 
 const games = ref([])
 const genresList = ref([])
@@ -47,7 +49,7 @@ const loadGames = async () => {
     games.value = data.results
     hasNextPage.value = !!data.next
   } catch (err) {
-    error.value = 'Hubo un error al cargar la lista de videojuegos.'
+    error.value = t('catalog.error')
     console.error(err)
   } finally {
     loading.value = false
@@ -83,35 +85,35 @@ onMounted(() => {
 <template>
   <div class="catalog-view container fade-in">
     <header class="catalog-header">
-      <h1 class="catalog-header__title">Catálogo de Juegos</h1>
+      <h1 class="catalog-header__title">{{ t('catalog.title') }}</h1>
       <p class="catalog-header__subtitle">
-        Busca y filtra entre nuestra amplia selección de videojuegos.
+        {{ t('catalog.subtitle') }}
       </p>
     </header>
 
     <!-- Filters Bar (BEM: catalog-filters) -->
     <section class="catalog-filters">
       <div class="catalog-filters__group">
-        <label class="catalog-filters__label" for="search">Búsqueda</label>
+        <label class="catalog-filters__label" for="search">{{ t('catalog.searchLabel') }}</label>
         <input
           id="search"
           type="text"
           v-model="searchInput"
           @input="applyFilters"
-          placeholder="Escribe el nombre del juego..."
+          :placeholder="t('catalog.searchPlaceholder')"
           class="catalog-filters__input"
         />
       </div>
 
       <div class="catalog-filters__group">
-        <label class="catalog-filters__label" for="genre">Género</label>
+        <label class="catalog-filters__label" for="genre">{{ t('catalog.genreLabel') }}</label>
         <select
           id="genre"
           v-model="selectedGenre"
           @change="applyFilters"
           class="catalog-filters__select"
         >
-          <option value="">Todos los géneros</option>
+          <option value="">{{ t('catalog.allGenres') }}</option>
           <option v-for="g in genresList" :key="g.id" :value="g.slug">
             {{ g.name }}
           </option>
@@ -119,34 +121,34 @@ onMounted(() => {
       </div>
 
       <div class="catalog-filters__group">
-        <label class="catalog-filters__label" for="order">Ordenar por</label>
+        <label class="catalog-filters__label" for="order">{{ t('catalog.orderLabel') }}</label>
         <select
           id="order"
           v-model="selectedOrdering"
           @change="applyFilters"
           class="catalog-filters__select"
         >
-          <option value="">Relevancia</option>
-          <option value="name">Nombre (A-Z)</option>
-          <option value="-name">Nombre (Z-A)</option>
-          <option value="-released">Fecha de salida (Nuevo)</option>
-          <option value="released">Fecha de salida (Antiguo)</option>
-          <option value="-rating">Puntuación (Alta)</option>
-          <option value="-metacritic">Metacritic (Alto)</option>
+          <option value="">{{ t('catalog.order.relevance') }}</option>
+          <option value="name">{{ t('catalog.order.nameAsc') }}</option>
+          <option value="-name">{{ t('catalog.order.nameDesc') }}</option>
+          <option value="-released">{{ t('catalog.order.releaseNew') }}</option>
+          <option value="released">{{ t('catalog.order.releaseOld') }}</option>
+          <option value="-rating">{{ t('catalog.order.ratingHigh') }}</option>
+          <option value="-metacritic">{{ t('catalog.order.metacriticHigh') }}</option>
         </select>
       </div>
     </section>
 
     <!-- Games Grid -->
     <main class="catalog-main">
-      <div v-if="loading" class="catalog-main__loading">Cargando catálogo de videojuegos...</div>
+      <div v-if="loading" class="catalog-main__loading">{{ t('catalog.loading') }}</div>
 
       <div v-else-if="error" class="catalog-main__error">
         {{ error }}
       </div>
 
       <div v-else-if="games.length === 0" class="catalog-main__empty">
-        No se encontraron juegos que coincidan con la búsqueda.
+        {{ t('catalog.empty') }}
       </div>
 
       <div v-else class="catalog-main__grid">
@@ -171,13 +173,13 @@ onMounted(() => {
             </div>
             <div class="game-card__actions">
               <RouterLink :to="`/game/${game.id}`" class="btn btn--secondary">
-                Ver Detalles
+                {{ t('catalog.detailsBtn') }}
               </RouterLink>
               <button
                 @click="gamesStore.toggleFavorite(game)"
                 class="btn btn--outline"
                 :class="{ 'btn--active': gamesStore.isFavorite(game.id) }"
-                title="Añadir a favoritos"
+                :title="t('nav.favorites')"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -201,7 +203,7 @@ onMounted(() => {
                 @click="gamesStore.addToCart(game)"
                 class="btn btn--primary"
                 :class="{ 'btn--disabled': gamesStore.isInCart(game.id) }"
-                :title="gamesStore.isInCart(game.id) ? 'En Carrito' : 'Agregar al carrito'"
+                :title="gamesStore.isInCart(game.id) ? t('catalog.inCartBtn') : t('catalog.buyBtn')"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -218,7 +220,9 @@ onMounted(() => {
                   <circle cx="20" cy="21" r="1"></circle>
                   <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
                 </svg>
-                <span>{{ gamesStore.isInCart(game.id) ? 'En Carrito' : 'Comprar' }}</span>
+                <span>{{
+                  gamesStore.isInCart(game.id) ? t('catalog.inCartBtn') : t('catalog.buyBtn')
+                }}</span>
               </button>
             </div>
           </div>
@@ -233,16 +237,16 @@ onMounted(() => {
           :disabled="currentPage === 1"
           :class="{ 'btn--disabled': currentPage === 1 }"
         >
-          Anterior
+          {{ t('catalog.prev') }}
         </button>
-        <span class="catalog-pagination__page">Página {{ currentPage }}</span>
+        <span class="catalog-pagination__page">{{ t('catalog.page') }} {{ currentPage }}</span>
         <button
           @click="nextPage"
           class="btn btn--secondary"
           :disabled="!hasNextPage"
           :class="{ 'btn--disabled': !hasNextPage }"
         >
-          Siguiente
+          {{ t('catalog.next') }}
         </button>
       </footer>
     </main>

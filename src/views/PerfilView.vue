@@ -1,8 +1,10 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { useI18n } from '../composables/useI18n'
 
 const authStore = useAuthStore()
+const { t } = useI18n()
 
 // Form States
 const usernameInput = ref('')
@@ -12,12 +14,9 @@ const loginError = ref('')
 // Preferences local states
 const selectedCurrency = ref(authStore.preferences.currency)
 const selectedGenre = ref(authStore.preferences.preferredGenre)
+const selectedLanguage = ref(authStore.preferences.language)
 const newsletterChecked = ref(authStore.preferences.newsletter)
 const showPrefsSuccess = ref(false)
-
-// API key local state
-const apiKeyInput = ref(authStore.rawgApiKey)
-const showApiSuccess = ref(false)
 
 const handleLogin = () => {
   loginError.value = ''
@@ -39,6 +38,7 @@ const handleSavePreferences = () => {
   authStore.updatePreferences({
     currency: selectedCurrency.value,
     preferredGenre: selectedGenre.value,
+    language: selectedLanguage.value,
     newsletter: newsletterChecked.value,
   })
   showPrefsSuccess.value = true
@@ -46,33 +46,21 @@ const handleSavePreferences = () => {
     showPrefsSuccess.value = false
   }, 3000)
 }
-
-const handleSaveApiKey = () => {
-  authStore.updateApiKey(apiKeyInput.value)
-  showApiSuccess.value = true
-  setTimeout(() => {
-    showApiSuccess.value = false
-  }, 3000)
-  // Reload page to refresh API data source
-  setTimeout(() => {
-    window.location.reload()
-  }, 800)
-}
 </script>
 
 <template>
   <div class="profile-view container fade-in">
     <header class="profile-header">
-      <h1 class="profile-header__title">Mi Perfil y Preferencias</h1>
+      <h1 class="profile-header__title">{{ t('profile.title') }}</h1>
       <p class="profile-header__subtitle">
-        Gestiona tu sesión simulada, el tema visual y las configuraciones de la aplicación.
+        {{ t('profile.subtitle') }}
       </p>
     </header>
 
     <div class="profile-grid">
       <!-- Section 1: Simulated Auth -->
       <section class="profile-card">
-        <h2 class="profile-card__title">Sesión Simulada (sessionStorage)</h2>
+        <h2 class="profile-card__title">{{ t('profile.sessionTitle') }}</h2>
 
         <!-- Case 1: User is Logged In -->
         <div v-if="authStore.isLoggedIn" class="user-profile">
@@ -94,20 +82,22 @@ const handleSaveApiKey = () => {
           </div>
           <div class="user-profile__info">
             <p class="user-profile__username">
-              Bienvenido, <strong>{{ authStore.getUsername }}</strong>
+              {{ t('profile.welcome') }} <strong>{{ authStore.getUsername }}</strong>
             </p>
             <p class="user-profile__email">{{ authStore.user.email }}</p>
-            <p class="user-profile__date">Miembro desde: {{ authStore.user.joinedDate }}</p>
+            <p class="user-profile__date">
+              {{ t('profile.memberSince') }} {{ authStore.user.joinedDate }}
+            </p>
           </div>
           <button @click="handleLogout" class="btn btn--danger user-profile__btn">
-            Cerrar Sesión
+            {{ t('profile.logoutBtn') }}
           </button>
         </div>
 
         <!-- Case 2: Guest Mode / Login Form -->
         <form v-else @submit.prevent="handleLogin" class="login-form">
           <p class="login-form__info">
-            Inicia sesión de forma simulada para desbloquear la gestión completa del perfil.
+            {{ t('profile.loginInfo') }}
           </p>
 
           <div v-if="loginError" class="login-form__error">
@@ -115,7 +105,7 @@ const handleSaveApiKey = () => {
           </div>
 
           <div class="form-field">
-            <label class="form-field__label" for="username">Nombre de usuario</label>
+            <label class="form-field__label" for="username">{{ t('profile.usernameLabel') }}</label>
             <input
               id="username"
               type="text"
@@ -127,7 +117,7 @@ const handleSaveApiKey = () => {
           </div>
 
           <div class="form-field">
-            <label class="form-field__label" for="password">Contraseña (Simulada)</label>
+            <label class="form-field__label" for="password">{{ t('profile.passwordLabel') }}</label>
             <input
               id="password"
               type="password"
@@ -138,17 +128,19 @@ const handleSaveApiKey = () => {
             />
           </div>
 
-          <button type="submit" class="btn btn--primary login-form__btn">Iniciar Sesión</button>
+          <button type="submit" class="btn btn--primary login-form__btn">
+            {{ t('profile.loginBtn') }}
+          </button>
         </form>
       </section>
 
       <!-- Section 2: Visual and App Preferences -->
       <section class="profile-card">
-        <h2 class="profile-card__title">Configuraciones y Tema (localStorage)</h2>
+        <h2 class="profile-card__title">{{ t('profile.configTitle') }}</h2>
 
         <!-- Theme Selection -->
         <div class="theme-selector">
-          <span class="theme-selector__label">Tema Visual:</span>
+          <span class="theme-selector__label">{{ t('profile.themeLabel') }}</span>
           <div class="theme-selector__buttons">
             <button
               @click="authStore.setTheme('dark')"
@@ -168,7 +160,7 @@ const handleSaveApiKey = () => {
               >
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
               </svg>
-              <span>Oscuro (Twitch)</span>
+              <span>{{ t('profile.themeDark') }}</span>
             </button>
             <button
               @click="authStore.setTheme('light')"
@@ -196,7 +188,7 @@ const handleSaveApiKey = () => {
                 <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
                 <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
               </svg>
-              <span>Claro</span>
+              <span>{{ t('profile.themeLight') }}</span>
             </button>
           </div>
         </div>
@@ -206,26 +198,110 @@ const handleSaveApiKey = () => {
         <!-- User Preferences Form -->
         <form @submit.prevent="handleSavePreferences" class="preferences-form">
           <div v-if="showPrefsSuccess" class="preferences-form__success">
-            ✓ Preferencias guardadas correctamente en localStorage.
+            {{ t('profile.successPrefs') }}
           </div>
 
           <div class="form-field">
-            <label class="form-field__label" for="currency">Moneda de compra</label>
+            <label class="form-field__label" for="currency">{{ t('profile.currencyLabel') }}</label>
             <select id="currency" v-model="selectedCurrency" class="form-field__input">
-              <option value="USD">Dólar ($ USD)</option>
+              <option value="USD">
+                {{
+                  authStore.preferences.language === 'en'
+                    ? 'Dollar ($ USD)'
+                    : authStore.preferences.language === 'pt'
+                      ? 'Dólar ($ USD)'
+                      : authStore.preferences.language === 'fr'
+                        ? 'Dollar ($ USD)'
+                        : authStore.preferences.language === 'de'
+                          ? 'Dollar ($ USD)'
+                          : authStore.preferences.language === 'it'
+                            ? 'Dollaro ($ USD)'
+                            : 'Dólar ($ USD)'
+                }}
+              </option>
               <option value="EUR">Euro (€ EUR)</option>
-              <option value="ARS">Peso Argentino ($ ARS)</option>
+              <option value="ARS">
+                {{
+                  authStore.preferences.language === 'en'
+                    ? 'Argentine Peso ($ ARS)'
+                    : authStore.preferences.language === 'pt'
+                      ? 'Peso Argentino ($ ARS)'
+                      : authStore.preferences.language === 'fr'
+                        ? 'Peso Argentin ($ ARS)'
+                        : authStore.preferences.language === 'de'
+                          ? 'Argentinischer Peso ($ ARS)'
+                          : authStore.preferences.language === 'it'
+                            ? 'Peso Argentino ($ ARS)'
+                            : 'Peso Argentino ($ ARS)'
+                }}
+              </option>
             </select>
           </div>
 
           <div class="form-field">
-            <label class="form-field__label" for="pref-genre">Género preferido</label>
+            <label class="form-field__label" for="pref-genre">{{ t('profile.genreLabel') }}</label>
             <select id="pref-genre" v-model="selectedGenre" class="form-field__input">
-              <option value="">Ninguno</option>
-              <option value="action">Acción</option>
+              <option value="">
+                {{
+                  authStore.preferences.language === 'en'
+                    ? 'None'
+                    : authStore.preferences.language === 'pt'
+                      ? 'Nenhum'
+                      : authStore.preferences.language === 'fr'
+                        ? 'Aucun'
+                        : authStore.preferences.language === 'de'
+                          ? 'Keines'
+                          : authStore.preferences.language === 'it'
+                            ? 'Nessuno'
+                            : 'Ninguno'
+                }}
+              </option>
+              <option value="action">
+                {{
+                  authStore.preferences.language === 'en'
+                    ? 'Action'
+                    : authStore.preferences.language === 'pt'
+                      ? 'Ação'
+                      : authStore.preferences.language === 'fr'
+                        ? 'Action'
+                        : authStore.preferences.language === 'de'
+                          ? 'Action'
+                          : authStore.preferences.language === 'it'
+                            ? 'Azione'
+                            : 'Acción'
+                }}
+              </option>
               <option value="role-playing-games-rpg">RPG</option>
-              <option value="adventure">Aventura</option>
+              <option value="adventure">
+                {{
+                  authStore.preferences.language === 'en'
+                    ? 'Adventure'
+                    : authStore.preferences.language === 'pt'
+                      ? 'Aventura'
+                      : authStore.preferences.language === 'fr'
+                        ? 'Aventure'
+                        : authStore.preferences.language === 'de'
+                          ? 'Abenteuer'
+                          : authStore.preferences.language === 'it'
+                            ? 'Avventura'
+                            : 'Aventura'
+                }}
+              </option>
               <option value="indie">Indie</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label class="form-field__label" for="pref-language">{{
+              t('profile.langLabel')
+            }}</label>
+            <select id="pref-language" v-model="selectedLanguage" class="form-field__input">
+              <option value="es">Español</option>
+              <option value="en">Inglés (Original)</option>
+              <option value="pt">Portugués</option>
+              <option value="fr">Francés</option>
+              <option value="de">Alemán</option>
+              <option value="it">Italiano</option>
             </select>
           </div>
 
@@ -237,50 +313,25 @@ const handleSaveApiKey = () => {
               class="form-field__checkbox"
             />
             <label class="form-field__label-checkbox" for="newsletter">
-              Recibir ofertas de videojuegos por correo electrónico
+              {{
+                authStore.preferences.language === 'en'
+                  ? 'Receive video game offers by email'
+                  : authStore.preferences.language === 'pt'
+                    ? 'Receber ofertas de jogos por e-mail'
+                    : authStore.preferences.language === 'fr'
+                      ? 'Recevoir des offres de jeux vidéo par e-mail'
+                      : authStore.preferences.language === 'de'
+                        ? 'Erhalte Spieleangebote per E-Mail'
+                        : authStore.preferences.language === 'it'
+                          ? 'Ricevi offerte di videogiochi via e-mail'
+                          : 'Recibir ofertas de videojuegos por correo electrónico'
+              }}
             </label>
           </div>
 
           <button type="submit" class="btn btn--secondary preferences-form__btn">
-            Guardar Preferencias
+            {{ t('profile.saveBtn') }}
           </button>
-        </form>
-      </section>
-
-      <!-- Section 3: RAWG API Config -->
-      <section class="profile-card profile-card--full-width">
-        <h2 class="profile-card__title">Conexión con RAWG.io (Opcional)</h2>
-        <p class="profile-card__text">
-          Por defecto, el laboratorio utiliza una base de datos local simulada para evitar errores
-          de conexión. Si quieres consumir la API real de RAWG.io con miles de videojuegos reales,
-          puedes obtener una clave gratuita en
-          <a href="https://rawg.io/apidocs" target="_blank" class="profile-card__link"
-            >RAWG API Docs</a
-          >
-          e ingresarla aquí.
-        </p>
-
-        <form @submit.prevent="handleSaveApiKey" class="api-form">
-          <div v-if="showApiSuccess" class="api-form__success">
-            ✓ Clave API guardada. Recargando la aplicación...
-          </div>
-
-          <div class="form-field">
-            <label class="form-field__label" for="api-key">Clave de API de RAWG</label>
-            <div class="api-form__input-group">
-              <input
-                id="api-key"
-                type="text"
-                v-model="apiKeyInput"
-                placeholder="Ingresa tu API Key (ej. 3abcde12345...)"
-                class="form-field__input api-form__input"
-              />
-              <button type="submit" class="btn btn--primary">Conectar API</button>
-            </div>
-            <p class="form-field__help">
-              Se guardará de forma segura en tu navegador (localStorage).
-            </p>
-          </div>
         </form>
       </section>
     </div>

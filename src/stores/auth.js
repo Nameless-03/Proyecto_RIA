@@ -1,16 +1,21 @@
 import { defineStore } from 'pinia'
 
 export const useAuthStore = defineStore('auth', {
-  state: () => ({
-    user: JSON.parse(sessionStorage.getItem('auth_user')) || null,
-    theme: localStorage.getItem('user_theme') || 'dark',
-    preferences: JSON.parse(localStorage.getItem('user_preferences')) || {
+  state: () => {
+    const defaultPrefs = {
       currency: 'USD',
       preferredGenre: '',
       newsletter: false,
-    },
-    rawgApiKey: localStorage.getItem('rawg_api_key') || '',
-  }),
+      language: 'es',
+    }
+    const savedPrefs = JSON.parse(localStorage.getItem('user_preferences')) || {}
+    return {
+      user: JSON.parse(sessionStorage.getItem('auth_user')) || null,
+      theme: localStorage.getItem('user_theme') || 'dark',
+      preferences: { ...defaultPrefs, ...savedPrefs },
+      rawgApiKey: localStorage.getItem('rawg_api_key') || '',
+    }
+  },
 
   getters: {
     isLoggedIn: (state) => !!state.user,

@@ -1,15 +1,19 @@
 <script setup>
 import { useGamesStore } from '../stores/games'
+import { useAuthStore } from '../stores/auth'
+import { useI18n } from '../composables/useI18n'
 
 const gamesStore = useGamesStore()
+const authStore = useAuthStore()
+const { t } = useI18n()
 </script>
 
 <template>
   <div class="favorites-view container fade-in">
     <header class="favorites-header">
-      <h1 class="favorites-header__title">Mis Favoritos</h1>
+      <h1 class="favorites-header__title">{{ t('nav.favorites') }}</h1>
       <p class="favorites-header__subtitle">
-        Tus videojuegos preferidos guardados para acceder rápidamente.
+        {{ t('favorites.subtitle') }}
       </p>
     </header>
 
@@ -32,11 +36,23 @@ const gamesStore = useGamesStore()
             ></path>
           </svg>
         </span>
-        <h2 class="favorites-main__empty-title">Aún no tienes favoritos</h2>
+        <h2 class="favorites-main__empty-title">{{ t('favorites.empty') }}</h2>
         <p class="favorites-main__empty-desc">
-          Navega por el catálogo y marca los juegos que te interesen.
+          {{
+            authStore.preferences.language === 'en'
+              ? 'Browse the catalog and mark the games you like.'
+              : authStore.preferences.language === 'pt'
+                ? 'Navegue pelo catálogo e marque os jogos de seu interesse.'
+                : authStore.preferences.language === 'fr'
+                  ? 'Parcourez le catalogue et marquez les jeux qui vous intéressent.'
+                  : authStore.preferences.language === 'de'
+                    ? 'Stöbere im Katalog und markiere die Spiele, die dich interessieren.'
+                    : authStore.preferences.language === 'it'
+                      ? 'Sfoglia il catalogo e segna i giochi che ti interessano.'
+                      : 'Navega por el catálogo y marca los juegos que te interesen.'
+          }}
         </p>
-        <RouterLink to="/catalog" class="btn btn--primary"> Ver Catálogo </RouterLink>
+        <RouterLink to="/catalog" class="btn btn--primary"> {{ t('home.exploreBtn') }} </RouterLink>
       </div>
 
       <div v-else class="favorites-main__grid">
@@ -61,12 +77,12 @@ const gamesStore = useGamesStore()
             </div>
             <div class="game-card__actions">
               <RouterLink :to="`/game/${game.id}`" class="btn btn--secondary">
-                Ver Detalles
+                {{ t('catalog.detailsBtn') }}
               </RouterLink>
               <button
                 @click="gamesStore.toggleFavorite(game)"
                 class="btn btn--danger btn--icon-only"
-                title="Eliminar de favoritos"
+                :title="t('favorites.removeBtn')"
               >
                 <!-- Trash SVG Outline -->
                 <svg
@@ -109,7 +125,9 @@ const gamesStore = useGamesStore()
                   <circle cx="20" cy="21" r="1"></circle>
                   <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
                 </svg>
-                <span>{{ gamesStore.isInCart(game.id) ? 'En Carrito' : 'Comprar' }}</span>
+                <span>{{
+                  gamesStore.isInCart(game.id) ? t('catalog.inCartBtn') : t('catalog.buyBtn')
+                }}</span>
               </button>
             </div>
           </div>

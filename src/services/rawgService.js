@@ -120,8 +120,35 @@ export const rawgService = {
         if (ordering) params.ordering = ordering
 
         const data = await fetchFromRawg('games', params)
+        let results = data.results
+
+        // Translate categories/genres in results
+        const prefs = JSON.parse(localStorage.getItem('user_preferences'))
+        const targetLang = prefs?.language || 'es'
+        if (targetLang !== 'en' && results) {
+          try {
+            const { translateText } = await import('./translateService')
+            results = await Promise.all(
+              results.map(async (game) => {
+                if (game.genres) {
+                  const translatedGenres = await Promise.all(
+                    game.genres.map(async (g) => {
+                      const name = await translateText(g.name, targetLang, 'en')
+                      return { ...g, name }
+                    }),
+                  )
+                  return { ...game, genres: translatedGenres }
+                }
+                return game
+              }),
+            )
+          } catch (trErr) {
+            console.warn('Failed to translate game genres in list:', trErr)
+          }
+        }
+
         return {
-          results: data.results,
+          results,
           count: data.count,
           next: data.next,
           previous: data.previous,
@@ -262,6 +289,24 @@ export const rawgService = {
           console.warn('Could not fetch screenshots from RAWG:', screenshotError)
           gameDetail.short_screenshots = []
         }
+
+        // Translate categories/genres in game detail
+        const prefs = JSON.parse(localStorage.getItem('user_preferences'))
+        const targetLang = prefs?.language || 'es'
+        if (targetLang !== 'en' && gameDetail.genres) {
+          try {
+            const { translateText } = await import('./translateService')
+            gameDetail.genres = await Promise.all(
+              gameDetail.genres.map(async (g) => {
+                const name = await translateText(g.name, targetLang, 'en')
+                return { ...g, name }
+              }),
+            )
+          } catch (trErr) {
+            console.warn('Failed to translate game genres in detail:', trErr)
+          }
+        }
+
         return gameDetail
       } catch (error) {
         console.warn('Error fetching game detail from RAWG, falling back:', error)
@@ -339,19 +384,34 @@ export const rawgService = {
     }
   },
 
-  /**
-   * Obtener géneros de videojuegos
-   */
   async getGenres() {
+    let results = GENRES
     if (isUsingRealApi()) {
       try {
         const data = await fetchFromRawg('genres')
-        return data.results
+        results = data.results
       } catch (error) {
         console.warn('Error fetching genres:', error)
       }
     }
 
-    return GENRES
+    // Translate genres based on preferred language
+    const prefs = JSON.parse(localStorage.getItem('user_preferences'))
+    const targetLang = prefs?.language || 'es'
+    if (targetLang !== 'en' && results) {
+      try {
+        const { translateText } = await import('./translateService')
+        results = await Promise.all(
+          results.map(async (g) => {
+            const translatedName = await translateText(g.name, targetLang, 'en')
+            return { ...g, name: translatedName }
+          }),
+        )
+      } catch (err) {
+        console.warn('Failed to translate genres list:', err)
+      }
+    }
+
+    return results
   },
 }
