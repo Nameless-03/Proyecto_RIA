@@ -48,8 +48,7 @@ onMounted(() => {
             LITTLEBOX GAMES
           </h4>
           <p class="app-footer__text">
-            Proyecto para el Laboratorio del Taller de RIA.
-            Hola Nico :D
+            Proyecto para el Laboratorio del Taller de RIA. Hola Nico :D
           </p>
         </div>
 

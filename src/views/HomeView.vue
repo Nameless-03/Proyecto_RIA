@@ -1,20 +1,43 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { rawgService } from '../services/rawgService'
+import { useGamesStore } from '../stores/games'
 import GameCard from '../components/GameCard.vue'
 import { useFavorites } from '../composables/useFavorites'
 
+const router = useRouter()
+const gamesStore = useGamesStore()
 const { isFavorite, toggleFavorite } = useFavorites()
+
+// Destacados
 const featuredGames = ref([])
 const loading = ref(true)
 const error = ref(null)
 
+// Últimos Lanzamientos
+const latestReleases = ref([])
+const latestLoading = ref(true)
+const latestError = ref(null)
+
+// Categorías Aleatorias (Exploración Rápida)
+const randomCategories = ref([])
+const categoriesLoading = ref(true)
+const categoriesError = ref(null)
+
+// Descubre
 const discoverCategories = ref([])
 const discoverLoading = ref(true)
 const discoverError = ref(null)
 
+// Navegación interactiva filtrada mediante Pinia hacia el Catálogo
+const exploreCategory = (genreSlug) => {
+  gamesStore.setTempFilters({ genre: genreSlug })
+  router.push('/catalog')
+}
+
 onMounted(async () => {
-  // Cargar videojuegos destacados
+  // Cargar videojuegos destacados (Títulos Destacados)
   try {
     const data = await rawgService.getGames({ page_size: 3 })
     featuredGames.value = data.results
@@ -25,11 +48,40 @@ onMounted(async () => {
     loading.value = false
   }
 
+  // Cargar últimos lanzamientos
+  try {
+    const latestData = await rawgService.getGames({
+      ordering: '-released',
+      page_size: 4,
+    })
+    latestReleases.value = latestData.results
+  } catch (err) {
+    latestError.value = 'Error al cargar los últimos lanzamientos.'
+    console.error(err)
+  } finally {
+    latestLoading.value = false
+  }
+
+  // Cargar categorías de exploración rápida aleatorias
+  try {
+    const genres = await rawgService.getGenres()
+    if (genres && genres.length > 0) {
+      // Barajar y tomar 5 géneros al azar
+      const shuffledGenres = [...genres].sort(() => 0.5 - Math.random())
+      randomCategories.value = shuffledGenres.slice(0, 5)
+    }
+  } catch (err) {
+    categoriesError.value = 'Error al cargar las categorías de exploración.'
+    console.error(err)
+  } finally {
+    categoriesLoading.value = false
+  }
+
   // Cargar sección Descubre (categorías aleatorias con juegos aleatorios)
   try {
     const genres = await rawgService.getGenres()
     if (genres && genres.length > 0) {
-      // Barajar y elegir 2 géneros al azar
+      // Barajar y elegir 2 géneros al azar distintos de los recomendados
       const shuffledGenres = [...genres].sort(() => 0.5 - Math.random())
       const selectedGenres = shuffledGenres.slice(0, 2)
 
@@ -126,7 +178,100 @@ onMounted(async () => {
       </div>
     </section>
 
-    <!-- Discover Section (Descubre) -->
+    <!-- Latest Releases Section -->
+    <section class="home-latest container">
+      <h2 class="home-latest__title">Últimos Lanzamientos</h2>
+
+      <div v-if="latestLoading" class="home-latest__loading">Cargando últimos lanzamientos...</div>
+      <div v-else-if="latestError" class="home-latest__error">
+        {{ latestError }}
+      </div>
+      <div v-else class="home-latest__grid">
+        <GameCard v-for="game in latestReleases" :key="game.id" :game="game">
+          <template #actions>
+            <RouterLink :to="`/game/${game.id}`" class="btn btn--secondary btn--primary-hover">
+              Ver Detalles
+            </RouterLink>
+            <button
+              @click="toggleFavorite(game)"
+              class="btn btn--outline"
+              :class="{ 'btn--active': isFavorite(game.id) }"
+              title="Añadir a favoritos"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="heart-icon"
+                :class="{ 'heart-icon--filled': isFavorite(game.id) }"
+              >
+                <path
+                  d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                ></path>
+              </svg>
+              Fav
+            </button>
+          </template>
+        </GameCard>
+      </div>
+    </section>
+
+    <!-- Explore by Category Section -->
+    <section class="home-categories container">
+      <div class="home-categories__header">
+        <h2 class="home-categories__title">Explorar por Categoría</h2>
+        <p class="home-categories__subtitle">
+          Haz clic en cualquier categoría para ver los mejores videojuegos de ese género en el
+          catálogo.
+        </p>
+      </div>
+
+      <div v-if="categoriesLoading" class="home-categories__loading">
+        Cargando categorías de exploración...
+      </div>
+      <div v-else-if="categoriesError" class="home-categories__error">
+        {{ categoriesError }}
+      </div>
+      <div v-else class="home-categories__grid">
+        <div
+          v-for="category in randomCategories"
+          :key="category.id"
+          class="category-card"
+          @click="exploreCategory(category.slug)"
+        >
+          <!-- Glowing background accent -->
+          <div class="category-card__glow"></div>
+
+          <!-- Category Details -->
+          <span class="category-card__icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+          </span>
+          <span class="category-card__name">{{ category.name }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Discover Section -->
     <section class="home-discover container">
       <div class="home-discover__header">
         <h2 class="home-discover__title">Descubre</h2>
@@ -233,7 +378,7 @@ onMounted(async () => {
 .home-view {
   display: flex;
   flex-direction: column;
-  gap: 3rem;
+  gap: 3.5rem;
   padding-bottom: 4rem;
 }
 
@@ -305,6 +450,141 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 2rem;
+}
+
+/* Latest Releases Section */
+.home-latest {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.home-latest__title {
+  font-size: 2rem;
+  font-weight: 700;
+  border-left: 4px solid var(--color-primary);
+  padding-left: 0.75rem;
+}
+
+.home-latest__loading,
+.home-latest__error {
+  text-align: center;
+  padding: 3rem;
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--border-radius-lg);
+  color: var(--color-text-secondary);
+}
+
+.home-latest__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+/* Explore by Category Section */
+.home-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.home-categories__header {
+  border-left: 4px solid var(--color-primary);
+  padding-left: 0.75rem;
+}
+
+.home-categories__title {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.home-categories__subtitle {
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  margin-top: 0.25rem;
+}
+
+.home-categories__loading,
+.home-categories__error {
+  text-align: center;
+  padding: 2rem;
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--border-radius-lg);
+  color: var(--color-text-secondary);
+}
+
+.home-categories__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Category Card Glassmorphic */
+.category-card {
+  position: relative;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  padding: 1.5rem;
+  border-radius: var(--border-radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  overflow: hidden;
+  transition: var(--transition-smooth);
+  text-align: center;
+}
+
+.category-card__glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(145, 70, 255, 0.15) 0%, transparent 70%);
+  opacity: 0;
+  transition: var(--transition-smooth);
+  z-index: 1;
+}
+
+.category-card:hover .category-card__glow {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.category-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--color-primary);
+  box-shadow: 0 8px 24px rgba(145, 70, 255, 0.15);
+}
+
+.category-card__icon {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-primary);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-smooth);
+  z-index: 2;
+}
+
+.category-card:hover .category-card__icon {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  transform: rotate(15deg) scale(1.1);
+}
+
+.category-card__name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  z-index: 2;
 }
 
 /* Discover Section */
