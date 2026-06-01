@@ -2,7 +2,7 @@
  * Service to handle translation requests using Google Translate's highly stable free endpoint.
  * This completely resolves CORS, speed, and API key requirements.
  */
-export async function translateText(text, targetLang, sourceLang = 'en') {
+export async function translateText(text, targetLang, sourceLang = 'auto') {
   if (!text || !targetLang || targetLang === sourceLang) {
     return text
   }

@@ -59,7 +59,7 @@ onMounted(async () => {
     if (targetLang !== 'en' && desc) {
       translating.value = true
       try {
-        const translated = await translateText(desc, targetLang, 'en')
+        const translated = await translateText(desc, targetLang, 'auto')
         if (translated && translated !== desc) {
           translatedDescription.value = translated
           game.value.description = translated
