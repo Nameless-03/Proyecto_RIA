@@ -47,9 +47,7 @@ onMounted(() => {
             </svg>
             LITTLEBOX GAMES
           </h4>
-          <p class="app-footer__text">
-            Proyecto desarrollado para el Laboratorio Universitario de Taller de RIA.
-          </p>
+          <p class="app-footer__text">Taller de RIA.</p>
         </div>
 
         <div class="app-footer__section">

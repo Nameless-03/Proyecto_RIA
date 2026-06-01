@@ -15,10 +15,6 @@ const selectedGenre = ref(authStore.preferences.preferredGenre)
 const newsletterChecked = ref(authStore.preferences.newsletter)
 const showPrefsSuccess = ref(false)
 
-// API key local state
-const apiKeyInput = ref(authStore.rawgApiKey)
-const showApiSuccess = ref(false)
-
 const handleLogin = () => {
   loginError.value = ''
   try {
@@ -46,18 +42,6 @@ const handleSavePreferences = () => {
     showPrefsSuccess.value = false
   }, 3000)
 }
-
-const handleSaveApiKey = () => {
-  authStore.updateApiKey(apiKeyInput.value)
-  showApiSuccess.value = true
-  setTimeout(() => {
-    showApiSuccess.value = false
-  }, 3000)
-  // Reload page to refresh API data source
-  setTimeout(() => {
-    window.location.reload()
-  }, 800)
-}
 </script>
 
 <template>
@@ -65,14 +49,14 @@ const handleSaveApiKey = () => {
     <header class="profile-header">
       <h1 class="profile-header__title">Mi Perfil y Preferencias</h1>
       <p class="profile-header__subtitle">
-        Gestiona tu sesión simulada, el tema visual y las configuraciones de la aplicación.
+        Gestiona tu sesión, el tema visual y las configuraciones de la aplicación.
       </p>
     </header>
 
     <div class="profile-grid">
       <!-- Section 1: Simulated Auth -->
       <section class="profile-card">
-        <h2 class="profile-card__title">Sesión Simulada (sessionStorage)</h2>
+        <h2 class="profile-card__title">Sesión</h2>
 
         <!-- Case 1: User is Logged In -->
         <div v-if="authStore.isLoggedIn" class="user-profile">
@@ -107,7 +91,7 @@ const handleSaveApiKey = () => {
         <!-- Case 2: Guest Mode / Login Form -->
         <form v-else @submit.prevent="handleLogin" class="login-form">
           <p class="login-form__info">
-            Inicia sesión de forma simulada para desbloquear la gestión completa del perfil.
+            Inicia sesión para la gestión completa del perfil.
           </p>
 
           <div v-if="loginError" class="login-form__error">
@@ -127,7 +111,7 @@ const handleSaveApiKey = () => {
           </div>
 
           <div class="form-field">
-            <label class="form-field__label" for="password">Contraseña (Simulada)</label>
+            <label class="form-field__label" for="password">Contraseña</label>
             <input
               id="password"
               type="password"
@@ -144,7 +128,7 @@ const handleSaveApiKey = () => {
 
       <!-- Section 2: Visual and App Preferences -->
       <section class="profile-card">
-        <h2 class="profile-card__title">Configuraciones y Tema (localStorage)</h2>
+        <h2 class="profile-card__title">Configuraciones y Tema</h2>
 
         <!-- Theme Selection -->
         <div class="theme-selector">
@@ -168,7 +152,7 @@ const handleSaveApiKey = () => {
               >
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
               </svg>
-              <span>Oscuro (Twitch)</span>
+              <span>Oscuro</span>
             </button>
             <button
               @click="authStore.setTheme('light')"
@@ -248,41 +232,6 @@ const handleSaveApiKey = () => {
       </section>
 
       <!-- Section 3: RAWG API Config -->
-      <section class="profile-card profile-card--full-width">
-        <h2 class="profile-card__title">Conexión con RAWG.io (Opcional)</h2>
-        <p class="profile-card__text">
-          Por defecto, el laboratorio utiliza una base de datos local simulada para evitar errores
-          de conexión. Si quieres consumir la API real de RAWG.io con miles de videojuegos reales,
-          puedes obtener una clave gratuita en
-          <a href="https://rawg.io/apidocs" target="_blank" class="profile-card__link"
-            >RAWG API Docs</a
-          >
-          e ingresarla aquí.
-        </p>
-
-        <form @submit.prevent="handleSaveApiKey" class="api-form">
-          <div v-if="showApiSuccess" class="api-form__success">
-            ✓ Clave API guardada. Recargando la aplicación...
-          </div>
-
-          <div class="form-field">
-            <label class="form-field__label" for="api-key">Clave de API de RAWG</label>
-            <div class="api-form__input-group">
-              <input
-                id="api-key"
-                type="text"
-                v-model="apiKeyInput"
-                placeholder="Ingresa tu API Key (ej. 3abcde12345...)"
-                class="form-field__input api-form__input"
-              />
-              <button type="submit" class="btn btn--primary">Conectar API</button>
-            </div>
-            <p class="form-field__help">
-              Se guardará de forma segura en tu navegador (localStorage).
-            </p>
-          </div>
-        </form>
-      </section>
     </div>
   </div>
 </template>
