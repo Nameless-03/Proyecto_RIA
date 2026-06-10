@@ -10,6 +10,11 @@ export const useGamesStore = defineStore('games', {
       ordering: '',
       page: 1,
     },
+    // Estado para caché de la página de inicio
+    homeFeatured: [],
+    homeLatest: [],
+    homeRandomCategories: [],
+    homeDiscover: [],
   }),
 
   getters: {
@@ -92,6 +97,14 @@ export const useGamesStore = defineStore('games', {
         page: 1,
       }
       sessionStorage.removeItem('temp_filters')
+    },
+
+    // Actualizar caché de inicio
+    setHomeCache(data) {
+      if (data.featured) this.homeFeatured = data.featured
+      if (data.latest) this.homeLatest = data.latest
+      if (data.randomCategories) this.homeRandomCategories = data.randomCategories
+      if (data.discover) this.homeDiscover = data.discover
     },
   },
 })

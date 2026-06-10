@@ -209,7 +209,7 @@ const checkout = () => {
             <div v-else class="cart-dropdown__content">
               <ul class="cart-dropdown__list">
                 <li v-for="item in gamesStore.cart" :key="item.id" class="cart-item">
-                  <img :src="item.background_image" :alt="item.name" class="cart-item__img" />
+                  <img :src="item.background_image" :alt="item.name" class="cart-item__img" loading="lazy" />
                   <div class="cart-item__details">
                     <span class="cart-item__name">{{ item.name }}</span>
                     <span class="cart-item__price">${{ item.price.toFixed(2) }}</span>

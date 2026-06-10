@@ -13,23 +13,23 @@ const { isFavorite, toggleFavorite } = useFavorites()
 const { t } = useI18n()
 
 // Destacados
-const featuredGames = ref([])
-const loading = ref(true)
+const featuredGames = ref(gamesStore.homeFeatured)
+const loading = ref(gamesStore.homeFeatured.length === 0)
 const error = ref(null)
 
 // Últimos Lanzamientos
-const latestReleases = ref([])
-const latestLoading = ref(true)
+const latestReleases = ref(gamesStore.homeLatest)
+const latestLoading = ref(gamesStore.homeLatest.length === 0)
 const latestError = ref(null)
 
 // Categorías Aleatorias (Exploración Rápida)
-const randomCategories = ref([])
-const categoriesLoading = ref(true)
+const randomCategories = ref(gamesStore.homeRandomCategories)
+const categoriesLoading = ref(gamesStore.homeRandomCategories.length === 0)
 const categoriesError = ref(null)
 
 // Descubre
-const discoverCategories = ref([])
-const discoverLoading = ref(true)
+const discoverCategories = ref(gamesStore.homeDiscover)
+const discoverLoading = ref(gamesStore.homeDiscover.length === 0)
 const discoverError = ref(null)
 
 // Navegación interactiva filtrada mediante Pinia hacia el Catálogo
@@ -43,6 +43,7 @@ onMounted(async () => {
   try {
     const data = await rawgService.getGames({ page_size: 3 })
     featuredGames.value = data.results
+    gamesStore.setHomeCache({ featured: data.results })
   } catch (err) {
     error.value = t('Error al cargar los videojuegos destacados.')
     console.error(err)
@@ -57,6 +58,7 @@ onMounted(async () => {
       page_size: 4,
     })
     latestReleases.value = latestData.results
+    gamesStore.setHomeCache({ latest: latestData.results })
   } catch (err) {
     latestError.value = t('Error al cargar los últimos lanzamientos.')
     console.error(err)
@@ -71,6 +73,7 @@ onMounted(async () => {
       // Barajar y tomar 5 géneros al azar
       const shuffledGenres = [...genres].sort(() => 0.5 - Math.random())
       randomCategories.value = shuffledGenres.slice(0, 5)
+      gamesStore.setHomeCache({ randomCategories: shuffledGenres.slice(0, 5) })
     }
   } catch (err) {
     categoriesError.value = t('Error al cargar las categorías de exploración.')
@@ -107,6 +110,7 @@ onMounted(async () => {
         }
       }
       discoverCategories.value = categoriesData
+      gamesStore.setHomeCache({ discover: categoriesData })
     }
   } catch (err) {
     discoverError.value = 'Error al cargar las categorías de descubrimiento.'

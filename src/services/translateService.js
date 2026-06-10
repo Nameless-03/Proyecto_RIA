@@ -1,3 +1,4 @@
+import { obtenerDato, guardarDato } from './dbService'
 /**
  * Service to handle translation requests using Google Translate's highly stable free endpoint.
  * This completely resolves CORS, speed, and API key requirements.
@@ -119,6 +120,17 @@ export async function translateText(text, targetLang, sourceLang = 'auto') {
     return genreCache[targetLang][lowerText]
   }
 
+  // Buscar en almacenamiento de caché del navegador
+  const claveCache = `trans_cache_${targetLang}_${lowerText}`
+  try {
+    const cachedValue = await obtenerDato('translations', claveCache)
+    if (cachedValue) {
+      return cachedValue
+    }
+  } catch (err) {
+    console.warn('Error reading from IndexedDB translations:', err)
+  }
+
   try {
     const response = await fetch(
       `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(cleanText)}`,
@@ -130,7 +142,14 @@ export async function translateText(text, targetLang, sourceLang = 'auto') {
 
     const data = await response.json()
     if (data && data[0]) {
-      return data[0].map((s) => s[0]).join('')
+      const translated = data[0].map((s) => s[0]).join('')
+      // Guardar en caché local
+      try {
+        await guardarDato('translations', claveCache, translated)
+      } catch (err) {
+        console.warn('Error writing to IndexedDB translations:', err)
+      }
+      return translated
     }
     return text
   } catch (error) {

@@ -1,4 +1,5 @@
 import { mockGames } from '../data/mockGames'
+import { obtenerDato, guardarDato } from './dbService'
 
 const BASE_URL = 'https://api.rawg.io/api'
 const CHEAPSHARK_URL = 'https://www.cheapshark.com/api/1.0'
@@ -8,9 +9,11 @@ export function getApiKey() {
   return import.meta.env.VITE_RAWG_API_KEY || localStorage.getItem('rawg_api_key') || ''
 }
 
+let rawgFailed = false
+
 // Helper to check if we are using the real RAWG API
 export function isUsingRealApi() {
-  return !!getApiKey()
+  return !!getApiKey() && !rawgFailed
 }
 
 const GENRES = [
@@ -147,6 +150,20 @@ export const rawgService = {
     page = 1,
     page_size = 12,
   } = {}) {
+    const cacheParams = { search, genres, ordering, dates, page, page_size }
+    const prefix = isUsingRealApi() ? 'rawg' : 'cheapshark'
+    const claveCache = `${prefix}_games_list_${JSON.stringify(cacheParams)}`
+
+    // Buscar listado en caché temporal
+    try {
+      const cachedList = await obtenerDato('games', claveCache)
+      if (cachedList) {
+        return cachedList
+      }
+    } catch (err) {
+      console.warn('Error reading from IndexedDB games lists:', err)
+    }
+
     if (isUsingRealApi()) {
       try {
         // Pedimos el triple de juegos al servidor (page_size * 3) para tener un colchón de datos.
@@ -215,23 +232,45 @@ export const rawgService = {
           released: adjustReleaseDate(game.released, game.id),
         }))
 
-        return {
+        const finalResult = {
           results: adjustedResults,
           count: data.count,
           next: data.next || filteredResults.length > page_size ? page + 1 : null,
           previous: page > 1 ? page - 1 : null,
         }
+        try {
+          await guardarDato('games', claveCache, finalResult, 600000)
+        } catch (err) {
+          console.warn('Error writing to IndexedDB games lists:', err)
+        }
+        return finalResult
       } catch (error) {
         console.warn('Error fetching from RAWG API, falling back to CheapShark API:', error)
+        rawgFailed = true
       }
     }
 
     // Public API Fallback: CheapShark Deals (No API key required, CORS supported)
     try {
-      const response = await fetch(`${CHEAPSHARK_URL}/deals?pageSize=60`)
-      if (!response.ok) throw new Error('CheapShark API Error')
+      // Consultar múltiples páginas de ofertas en paralelo para tener un catálogo robusto
+      const paginasPromesas = [
+        fetch(`${CHEAPSHARK_URL}/deals?pageNumber=0&pageSize=50`),
+        fetch(`${CHEAPSHARK_URL}/deals?pageNumber=1&pageSize=50`),
+        fetch(`${CHEAPSHARK_URL}/deals?pageNumber=2&pageSize=50`),
+        fetch(`${CHEAPSHARK_URL}/deals?pageNumber=3&pageSize=50`),
+        fetch(`${CHEAPSHARK_URL}/deals?pageNumber=4&pageSize=50`),
+      ]
 
-      const deals = await response.json()
+      const respuestas = await Promise.all(paginasPromesas)
+      const listados = await Promise.all(
+        respuestas.map(async (res) => {
+          if (!res.ok) throw new Error('CheapShark API Error en página')
+          return res.json()
+        })
+      )
+
+      // Combinar todos los resultados en un único array
+      const deals = listados.flat()
 
       // Map CheapShark deals to RAWG-like game objects with de-duplication by title
       const uniqueGamesMap = new Map()
@@ -343,12 +382,18 @@ export const rawgService = {
       const startIndex = (page - 1) * page_size
       const paginatedResults = mappedGames.slice(startIndex, startIndex + page_size)
 
-      return {
+      const finalResult = {
         results: paginatedResults,
         count: mappedGames.length,
         next: mappedGames.length > startIndex + page_size ? page + 1 : null,
         previous: page > 1 ? page - 1 : null,
       }
+      try {
+        await guardarDato('games', claveCache, finalResult, 600000)
+      } catch (err) {
+        console.warn('Error writing to IndexedDB games lists:', err)
+      }
+      return finalResult
     } catch (apiError) {
       console.warn('CheapShark API failed, using static mockGames data:', apiError)
 
@@ -386,12 +431,18 @@ export const rawgService = {
         }))
 
       const startIndex = (page - 1) * page_size
-      return {
+      const finalResult = {
         results: adjustedMockGames.slice(startIndex, startIndex + page_size),
         count: adjustedMockGames.length,
         next: adjustedMockGames.length > startIndex + page_size ? page + 1 : null,
         previous: page > 1 ? page - 1 : null,
       }
+      try {
+        await guardarDato('games', claveCache, finalResult, 600000)
+      } catch (err) {
+        console.warn('Error writing to IndexedDB games lists:', err)
+      }
+      return finalResult
     }
   },
 
@@ -399,6 +450,20 @@ export const rawgService = {
    * Obtener detalle de un videojuego por ID o slug
    */
   async getGameDetail(idOrSlug) {
+    // Buscar detalle en caché temporal de la sesión
+    const prefix = isUsingRealApi() ? 'rawg' : 'cheapshark'
+    const claveCache = `${prefix}_game_detail_cache_${idOrSlug}`
+    try {
+      const cachedDetail = await obtenerDato('games', claveCache)
+      if (cachedDetail) {
+        return cachedDetail
+      }
+    } catch (err) {
+      console.warn('Error reading from IndexedDB games:', err)
+    }
+
+    let result = null
+
     if (isUsingRealApi()) {
       try {
         const gameDetail = await fetchFromRawg(`games/${idOrSlug}`)
@@ -432,84 +497,103 @@ export const rawgService = {
           }
         }
 
-        return gameDetail
+        result = gameDetail
       } catch (error) {
         console.warn('Error fetching game detail from RAWG, falling back:', error)
+        rawgFailed = true
       }
     }
 
-    // Try finding in mockGames first
-    const mockGame = mockGames.find((g) => g.id === Number(idOrSlug) || g.slug === idOrSlug)
-    if (mockGame) {
-      return {
-        ...mockGame,
-        description: mockGame.description_raw,
-        released: adjustReleaseDate(mockGame.released, mockGame.id),
+    if (!result) {
+      // Try finding in mockGames first
+      const mockGame = mockGames.find((g) => g.id === Number(idOrSlug) || g.slug === idOrSlug)
+      if (mockGame) {
+        result = {
+          ...mockGame,
+          description: mockGame.description_raw,
+          released: adjustReleaseDate(mockGame.released, mockGame.id),
+        }
       }
     }
 
-    // Search and detail from CheapShark API
+    if (!result) {
+      // Search and detail from CheapShark API
+      try {
+        const response = await fetch(`${CHEAPSHARK_URL}/games?id=${idOrSlug}`)
+        if (!response.ok) throw new Error('Game detail not found')
+        const gameData = await response.json()
+
+        const info = gameData.info
+        const steamAppId = info.steamAppID
+        const background_image = steamAppId
+          ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/header.jpg`
+          : info.thumb
+
+        // Extract prices from deals list
+        const bestDeal = gameData.deals?.[0]
+        const salePrice = bestDeal
+          ? parseFloat(bestDeal.price)
+          : parseFloat(gameData.cheapestPriceEver?.price) || 19.99
+        const retailPrice = bestDeal ? parseFloat(bestDeal.retailPrice) : salePrice
+
+        // Generate screenshots from steam if steamAppId exists
+        const screenshots = []
+        if (steamAppId) {
+          screenshots.push({
+            id: 1,
+            image: `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/ss_1.jpg`,
+          })
+          screenshots.push({
+            id: 2,
+            image: `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/ss_2.jpg`,
+          })
+          screenshots.push({
+            id: 3,
+            image: `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/ss_3.jpg`,
+          })
+        } else {
+          screenshots.push({ id: 1, image: background_image })
+        }
+
+        const gameId = parseInt(idOrSlug, 10)
+
+        result = {
+          id: gameId,
+          name: info.title,
+          slug: info.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          released: adjustReleaseDate('', gameId),
+          background_image,
+          rating: 4.5,
+          metacritic: bestDeal?.savings ? Math.floor(100 - parseFloat(bestDeal.savings)) : 80, // estimate score or mock
+          playtime: 40,
+          description: `Disfruta de <strong>${info.title}</strong>, un increíble título ahora disponible. Encuentra las mejores ofertas de las tiendas oficiales de PC vinculadas mediante la base de datos abierta de CheapShark.`,
+          genres: getStableGenres(info.title, gameId),
+          platforms: PLATFORMS,
+          price: salePrice,
+          normalPrice: retailPrice,
+          short_screenshots: screenshots,
+          developers: [{ name: 'Desarrollador Oficial' }],
+          publishers: [{ name: 'Distribuidor del Juego' }],
+        }
+      } catch (e) {
+        console.warn('Failed to retrieve CheapShark detail, game not found, falling back to mock:', e)
+        const fallbackMock = mockGames.find((g) => g.id === Number(idOrSlug) || g.slug === idOrSlug) || mockGames[0]
+        result = {
+          ...fallbackMock,
+          id: Number(idOrSlug) || fallbackMock.id,
+          description: fallbackMock.description_raw || fallbackMock.description || 'Descripción no disponible.',
+          released: adjustReleaseDate(fallbackMock.released, fallbackMock.id),
+        }
+      }
+    }
+
+    // Guardar en caché temporal de la sesión
     try {
-      const response = await fetch(`${CHEAPSHARK_URL}/games?id=${idOrSlug}`)
-      if (!response.ok) throw new Error('Game detail not found')
-      const gameData = await response.json()
-
-      const info = gameData.info
-      const steamAppId = info.steamAppID
-      const background_image = steamAppId
-        ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/header.jpg`
-        : info.thumb
-
-      // Extract prices from deals list
-      const bestDeal = gameData.deals?.[0]
-      const salePrice = bestDeal
-        ? parseFloat(bestDeal.price)
-        : parseFloat(gameData.cheapestPriceEver?.price) || 19.99
-      const retailPrice = bestDeal ? parseFloat(bestDeal.retailPrice) : salePrice
-
-      // Generate screenshots from steam if steamAppId exists
-      const screenshots = []
-      if (steamAppId) {
-        screenshots.push({
-          id: 1,
-          image: `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/ss_1.jpg`,
-        })
-        screenshots.push({
-          id: 2,
-          image: `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/ss_2.jpg`,
-        })
-        screenshots.push({
-          id: 3,
-          image: `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/ss_3.jpg`,
-        })
-      } else {
-        screenshots.push({ id: 1, image: background_image })
-      }
-
-      const gameId = parseInt(idOrSlug, 10)
-
-      return {
-        id: gameId,
-        name: info.title,
-        slug: info.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        released: adjustReleaseDate('', gameId),
-        background_image,
-        rating: 4.5,
-        metacritic: bestDeal?.savings ? Math.floor(100 - parseFloat(bestDeal.savings)) : 80, // estimate score or mock
-        playtime: 40,
-        description: `Disfruta de <strong>${info.title}</strong>, un increíble título ahora disponible. Encuentra las mejores ofertas de las tiendas oficiales de PC vinculadas mediante la base de datos abierta de CheapShark.`,
-        genres: getStableGenres(info.title, gameId),
-        platforms: PLATFORMS,
-        price: salePrice,
-        normalPrice: retailPrice,
-        short_screenshots: screenshots,
-        developers: [{ name: 'Desarrollador Oficial' }],
-        publishers: [{ name: 'Distribuidor del Juego' }],
-      }
-    } catch (e) {
-      console.warn('Failed to retrieve CheapShark detail, game not found:', e)
-      throw new Error('Juego no encontrado', { cause: e })
+      await guardarDato('games', claveCache, result, 600000)
+    } catch (err) {
+      console.warn('Error writing to IndexedDB games:', err)
     }
+    return result
   },
 
   async getGenres() {

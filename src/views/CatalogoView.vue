@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { rawgService } from '../services/rawgService'
 import { useGamesStore } from '../stores/games'
 import GameCard from '../components/GameCard.vue'
@@ -15,13 +15,16 @@ const { t } = useI18n()
 const games = ref([])
 const genresList = ref([])
 const loading = ref(true)
+const loadingMore = ref(false)
 const error = ref(null)
 
 const currentPage = ref(gamesStore.tempFilters.page || 1)
 const hasNextPage = ref(false)
 const totalGamesCount = ref(0)
-const totalPages = computed(() => Math.ceil(totalGamesCount.value / 6))
+const sentinel = ref(null)
+let observer = null
 
+// Cargar géneros de videojuegos
 const loadGenres = async () => {
   try {
     genresList.value = await rawgService.getGenres()
@@ -30,85 +33,123 @@ const loadGenres = async () => {
   }
 }
 
+// Cargar videojuegos del catálogo
 const loadGames = async () => {
-  loading.value = true
+  if (games.value.length === 0) {
+    loading.value = true
+  } else {
+    loadingMore.value = true
+  }
   error.value = null
   try {
-    // Sincronizar página actual con el store de Pinia
-    gamesStore.setTempFilters({
-      genre: selectedGenre.value,
-      ordering: selectedOrdering.value,
-      page: currentPage.value,
-    })
+    // Restaurar páginas acumuladas secuencialmente si volvemos atrás
+    if (currentPage.value > 1 && games.value.length === 0) {
+      const targetPage = currentPage.value
+      const allResults = []
+      for (let p = 1; p <= targetPage; p++) {
+        const data = await rawgService.getGames({
+          search: searchInput.value,
+          genres: selectedGenre.value,
+          ordering: selectedOrdering.value,
+          page: p,
+          page_size: 6,
+        })
+        allResults.push(...data.results)
+        hasNextPage.value = !!data.next
+        totalGamesCount.value = data.count || 0
+      }
+      games.value = allResults
+    } else {
+      // Cargar página individual
+      gamesStore.setTempFilters({
+        genre: selectedGenre.value,
+        ordering: selectedOrdering.value,
+        page: currentPage.value,
+      })
 
-    const data = await rawgService.getGames({
-      search: searchInput.value,
-      genres: selectedGenre.value,
-      ordering: selectedOrdering.value,
-      page: currentPage.value,
-      page_size: 6,
-    })
+      const data = await rawgService.getGames({
+        search: searchInput.value,
+        genres: selectedGenre.value,
+        ordering: selectedOrdering.value,
+        page: currentPage.value,
+        page_size: 6,
+      })
 
-    games.value = data.results
-    hasNextPage.value = !!data.next
-    totalGamesCount.value = data.count || 0
+      if (currentPage.value === 1) {
+        games.value = data.results
+      } else {
+        games.value = [...games.value, ...data.results]
+      }
+      hasNextPage.value = !!data.next
+      totalGamesCount.value = data.count || 0
+    }
   } catch (err) {
     error.value = t('Error al cargar los videojuegos del catálogo.')
     console.error(err)
   } finally {
     loading.value = false
+    loadingMore.value = false
   }
 }
 
-// Trigger reload on filter or search changes
+// Guardar posición de scroll al desplazarse
+const guardarPosicionScroll = () => {
+  sessionStorage.setItem('catalog_scroll_pos', String(window.scrollY))
+}
+
+// Aplicar filtros de búsqueda
 const applyFilters = () => {
   currentPage.value = 1
+  games.value = []
+  sessionStorage.setItem('catalog_scroll_pos', '0')
   loadGames()
 }
 
-const goToPage = (pageNumber) => {
-  if (pageNumber >= 1 && pageNumber <= totalPages.value) {
-    currentPage.value = pageNumber
-    loadGames()
+// Iniciar observador de scroll infinito
+const iniciarObserver = () => {
+  observer = new IntersectionObserver((entries) => {
+    const entry = entries[0]
+    if (entry.isIntersecting && hasNextPage.value && !loading.value && !loadingMore.value) {
+      currentPage.value++
+      loadGames()
+    }
+  }, {
+    rootMargin: '150px'
+  })
+
+  if (sentinel.value) {
+    observer.observe(sentinel.value)
   }
 }
 
-// Rango dinámico del índice de páginas (ej: 1 .. 4 .. 5 .. 6 .. 10)
-const paginationRange = computed(() => {
-  const current = currentPage.value
-  const total = totalPages.value
-  if (total <= 1) return [1]
-
-  const pages = []
-
-  // Siempre agregar página 1
-  pages.push(1)
-
-  // Determinar rango medio
-  const start = Math.max(2, current - 1)
-  const end = Math.min(total - 1, current + 1)
-
-  if (start > 2) {
-    pages.push('...')
+// Desmontar observador de scroll
+const desmontarObserver = () => {
+  if (observer && sentinel.value) {
+    observer.unobserve(sentinel.value)
   }
-
-  for (let i = start; i <= end; i++) {
-    pages.push(i)
-  }
-
-  if (end < total - 1) {
-    pages.push('...')
-  }
-
-  // Siempre agregar última página
-  pages.push(total)
-
-  return pages
-})
+}
 
 onMounted(() => {
   loadGenres()
-  loadGames()
+  loadGames().then(() => {
+    iniciarObserver()
+    
+    // Restaurar posición de scroll
+    const scrollGuardado = sessionStorage.getItem('catalog_scroll_pos')
+    if (scrollGuardado) {
+      setTimeout(() => {
+        window.scrollTo(0, parseInt(scrollGuardado, 10))
+      }, 100)
+    }
+    
+    // Escuchar evento de scroll
+    window.addEventListener('scroll', guardarPosicionScroll)
+  })
+})
+
+onUnmounted(() => {
+  desmontarObserver()
+  window.removeEventListener('scroll', guardarPosicionScroll)
 })
 </script>
 
@@ -238,43 +279,12 @@ onMounted(() => {
         </GameCard>
       </div>
 
-      <!-- Pagination Buttons -->
-      <footer v-if="!loading && !error && games.length > 0" class="catalog-pagination">
-        <button
-          @click="goToPage(currentPage - 1)"
-          class="btn btn--secondary"
-          :disabled="currentPage === 1"
-          :class="{ 'btn--disabled': currentPage === 1 }"
-        >
-          {{ t('Anterior') }}
-        </button>
-
-        <div class="catalog-pagination__numbers">
-          <button
-            v-for="(p, idx) in paginationRange"
-            :key="idx"
-            class="btn catalog-pagination__btn"
-            :class="{
-              'btn--primary': p === currentPage,
-              'btn--secondary': p !== currentPage && p !== '...',
-              'catalog-pagination__dots': p === '...',
-            }"
-            :disabled="p === '...'"
-            @click="p !== '...' && goToPage(p)"
-          >
-            {{ p }}
-          </button>
+      <!-- Centinela para scroll infinito -->
+      <div ref="sentinel" class="catalog-sentinel">
+        <div v-if="loadingMore" class="catalog-main__loading-more">
+          {{ t('Cargando más juegos...') }}
         </div>
-
-        <button
-          @click="goToPage(currentPage + 1)"
-          class="btn btn--secondary"
-          :disabled="!hasNextPage"
-          :class="{ 'btn--disabled': !hasNextPage }"
-        >
-          {{ t('Siguiente') }}
-        </button>
-      </footer>
+      </div>
     </main>
   </div>
 </template>
@@ -393,35 +403,20 @@ onMounted(() => {
   fill: var(--color-primary);
 }
 
-/* Pagination */
-.catalog-pagination {
+/* Scroll Infinito */
+.catalog-sentinel {
+  min-height: 50px;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 2rem;
+  padding: 1rem;
   margin-top: 1rem;
-  flex-wrap: wrap;
 }
 
-.catalog-pagination__numbers {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.catalog-pagination__btn {
-  padding: 0.5rem 0.8rem;
-  font-size: 0.9rem;
-  min-width: 38px;
-}
-
-.catalog-pagination__dots {
-  background: transparent !important;
-  border-color: transparent !important;
+.catalog-main__loading-more {
   color: var(--color-text-secondary);
-  cursor: default;
-  pointer-events: none;
+  font-weight: 600;
+  text-align: center;
 }
 
 @media (max-width: 768px) {
