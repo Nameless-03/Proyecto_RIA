@@ -25,7 +25,7 @@ const toggleTheme = () => {
 }
 
 const checkout = () => {
-  alert(`¡Compra simulada con éxito! Total pagado: $${gamesStore.cartTotal.toFixed(2)}`)
+  alert(`¡Compra simulada con éxito! Total pagado: ${authStore.formatPrice(gamesStore.cartTotal)}`)
   gamesStore.clearCart()
   isCartOpen.value = false
 }
@@ -212,7 +212,7 @@ const checkout = () => {
                   <img :src="item.background_image" :alt="item.name" class="cart-item__img" />
                   <div class="cart-item__details">
                     <span class="cart-item__name">{{ item.name }}</span>
-                    <span class="cart-item__price">${{ item.price.toFixed(2) }}</span>
+                    <span class="cart-item__price">{{ authStore.formatPrice(item.price) }}</span>
                   </div>
                   <button
                     @click="gamesStore.removeFromCart(item.id)"
@@ -240,9 +240,9 @@ const checkout = () => {
 
               <div class="cart-dropdown__total">
                 <span>{{ t('Total') }}:</span>
-                <span class="cart-dropdown__total-price"
-                  >${{ gamesStore.cartTotal.toFixed(2) }}</span
-                >
+                <span class="cart-dropdown__total-price">
+                  {{ authStore.formatPrice(gamesStore.cartTotal) }}
+                </span>
               </div>
 
               <div class="cart-dropdown__actions">

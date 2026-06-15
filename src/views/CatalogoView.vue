@@ -6,8 +6,10 @@ import GameCard from '../components/GameCard.vue'
 import { useFavorites } from '../composables/useFavorites'
 import { useFilters } from '../composables/useFilters'
 import { useI18n } from '../composables/useI18n'
+import { useAuthStore } from '../stores/auth'
 
 const gamesStore = useGamesStore()
+const authStore = useAuthStore()
 const { isFavorite, toggleFavorite } = useFavorites()
 const { searchInput, selectedGenre, selectedOrdering } = useFilters()
 const { t } = useI18n()
@@ -65,6 +67,11 @@ const loadGames = async () => {
 // Trigger reload on filter or search changes
 const applyFilters = () => {
   currentPage.value = 1
+  if (authStore.isLoggedIn && selectedGenre.value) {
+    authStore.updatePreferences({
+      preferredGenre: selectedGenre.value,
+    })
+  }
   loadGames()
 }
 
