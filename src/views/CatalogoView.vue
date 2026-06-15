@@ -18,9 +18,10 @@ const loading = ref(true)
 const error = ref(null)
 
 const currentPage = ref(gamesStore.tempFilters.page || 1)
+const pageSize = ref(gamesStore.tempFilters.pageSize || 6)
 const hasNextPage = ref(false)
 const totalGamesCount = ref(0)
-const totalPages = computed(() => Math.ceil(totalGamesCount.value / 6))
+const totalPages = computed(() => Math.ceil(totalGamesCount.value / pageSize.value))
 
 const loadGenres = async () => {
   try {
@@ -39,6 +40,7 @@ const loadGames = async () => {
       genre: selectedGenre.value,
       ordering: selectedOrdering.value,
       page: currentPage.value,
+      pageSize: pageSize.value,
     })
 
     const data = await rawgService.getGames({
@@ -46,7 +48,7 @@ const loadGames = async () => {
       genres: selectedGenre.value,
       ordering: selectedOrdering.value,
       page: currentPage.value,
-      page_size: 6,
+      page_size: pageSize.value,
     })
 
     games.value = data.results
@@ -62,6 +64,11 @@ const loadGames = async () => {
 
 // Trigger reload on filter or search changes
 const applyFilters = () => {
+  currentPage.value = 1
+  loadGames()
+}
+
+const changePageSize = () => {
   currentPage.value = 1
   loadGames()
 }
@@ -167,6 +174,21 @@ onMounted(() => {
           <option value="-metacritic">{{ t('Metacritic (Más alto)') }}</option>
         </select>
       </div>
+
+      <div class="catalog-filters__group">
+        <label class="catalog-filters__label" for="pageSize">{{ t('Mostrar') }}</label>
+        <select
+          id="pageSize"
+          v-model="pageSize"
+          @change="changePageSize"
+          class="catalog-filters__select"
+        >
+          <option :value="6">6 {{ t('juegos') }}</option>
+          <option :value="9">9 {{ t('juegos') }}</option>
+          <option :value="12">12 {{ t('juegos') }}</option>
+          <option :value="24">24 {{ t('juegos') }}</option>
+        </select>
+      </div>
     </section>
 
     <!-- Games Grid -->
@@ -239,7 +261,7 @@ onMounted(() => {
       </div>
 
       <!-- Pagination Buttons -->
-      <footer v-if="!loading && !error && games.length > 0" class="catalog-pagination">
+      <footer v-if="!loading && !error && totalPages > 1" class="catalog-pagination">
         <button
           @click="goToPage(currentPage - 1)"
           class="btn btn--secondary"

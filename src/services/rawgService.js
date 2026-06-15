@@ -149,10 +149,8 @@ export const rawgService = {
   } = {}) {
     if (isUsingRealApi()) {
       try {
-        // Pedimos el triple de juegos al servidor (page_size * 3) para tener un colchón de datos.
-        // Esto permite que, tras aplicar los filtros de calidad y de control parental NSFW en el cliente,
-        // sigamos teniendo suficientes juegos limpios para completar la página exacta solicitada de 6 juegos.
-        const params = { page, page_size: page_size * 3 }
+        // Pedimos la cantidad exacta de juegos al servidor para alinear correctamente la paginación.
+        const params = { page, page_size }
         if (search) params.search = search
         if (genres) params.genres = genres
         if (ordering) params.ordering = ordering
@@ -209,8 +207,8 @@ export const rawgService = {
           return true
         })
 
-        // Retornamos exactamente la cantidad de juegos limpia solicitada para rellenar la página (slice)
-        const adjustedResults = filteredResults.slice(0, page_size).map((game) => ({
+        // Adaptamos el formato de lanzamiento
+        const adjustedResults = filteredResults.map((game) => ({
           ...game,
           released: adjustReleaseDate(game.released, game.id),
         }))
@@ -218,7 +216,7 @@ export const rawgService = {
         return {
           results: adjustedResults,
           count: data.count,
-          next: data.next || filteredResults.length > page_size ? page + 1 : null,
+          next: data.next ? page + 1 : null,
           previous: page > 1 ? page - 1 : null,
         }
       } catch (error) {

@@ -3,10 +3,8 @@ import { onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 import AppNavbar from './components/AppNavbar.vue'
 import { useAuthStore } from './stores/auth'
-import { useI18n } from './composables/useI18n'
 
 const authStore = useAuthStore()
-const { t } = useI18n()
 
 // Al montar la app, sincronizamos el tema guardado en localStorage en el body.
 onMounted(() => {
@@ -50,36 +48,34 @@ onMounted(() => {
             LITTLEBOX GAMES
           </h4>
           <p class="app-footer__text">
-            {{ t('Proyecto desarrollado para el Laboratorio Universitario de Taller de RIA.') }}
+            Proyecto para el Laboratorio del Taller de RIA.
+            <br />
+            Hola Nico :D
           </p>
         </div>
 
         <div class="app-footer__section">
-          <h4 class="app-footer__title">
-            {{ t('Enlaces rápidos') }}
-          </h4>
+          <h4 class="app-footer__title">Enlaces rápidos</h4>
           <div class="app-footer__links">
-            <RouterLink to="/" class="app-footer__link">{{ t('Inicio') }}</RouterLink>
-            <RouterLink to="/catalog" class="app-footer__link">{{ t('Catálogo') }}</RouterLink>
-            <RouterLink to="/favorites" class="app-footer__link">{{ t('Favoritos') }}</RouterLink>
-            <RouterLink to="/profile" class="app-footer__link">{{ t('Perfil') }}</RouterLink>
+            <RouterLink to="/" class="app-footer__link">Inicio</RouterLink>
+            <RouterLink to="/catalog" class="app-footer__link">Catálogo</RouterLink>
+            <RouterLink to="/favorites" class="app-footer__link">Favoritos</RouterLink>
+            <RouterLink to="/profile" class="app-footer__link">Perfil</RouterLink>
           </div>
         </div>
 
         <div class="app-footer__section">
-          <h4 class="app-footer__title">
-            {{ t('Estado API') }}
-          </h4>
+          <h4 class="app-footer__title">Estado API</h4>
           <p class="app-footer__text">
-            {{ t('Modo:') }}
+            Modo:
             <strong :class="authStore.rawgApiKey ? 'text-success' : 'text-warning'">
-              {{ authStore.rawgApiKey ? t('RAWG API Conectada') : t('Simulado (Offline)') }}
+              {{ authStore.rawgApiKey ? 'RAWG API Conectada' : 'Simulado (Offline)' }}
             </strong>
           </p>
         </div>
       </div>
       <div class="app-footer__copyright">
-        © 2026 LittleBox Games. {{ t('Todos los derechos reservados.') }}
+        © 2026 LittleBox Games. Todos los derechos reservados.
       </div>
     </footer>
   </div>
