@@ -3,13 +3,29 @@ const DB_VERSION = 1
 const STORE_TRANSLATIONS = 'translations'
 const STORE_GAMES = 'games'
 
-// Inicializar base de datos
+let dbInstance = null
+let dbPromise = null
+
+// Inicializar base de datos y cachear conexión.
 export function inicializarDB() {
-  return new Promise((resolve, reject) => {
+  if (dbPromise) return dbPromise
+
+  dbPromise = new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION)
 
-    request.onerror = () => reject(request.error)
-    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => {
+      dbPromise = null
+      reject(request.error)
+    }
+    request.onsuccess = () => {
+      dbInstance = request.result
+      dbInstance.onversionchange = () => {
+        dbInstance.close()
+        dbInstance = null
+        dbPromise = null
+      }
+      resolve(dbInstance)
+    }
 
     request.onupgradeneeded = (event) => {
       const db = event.target.result
@@ -21,15 +37,20 @@ export function inicializarDB() {
       }
     }
   })
+
+  return dbPromise
 }
 
-// Obtener dato de base de datos
+// Obtener dato de base de datos.
 export async function obtenerDato(storeName, clave) {
   const db = await inicializarDB()
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readonly')
     const store = transaction.objectStore(storeName)
     const request = store.get(clave)
+
+    transaction.onerror = () => reject(transaction.error)
+    request.onerror = () => reject(request.error)
 
     request.onsuccess = () => {
       const payload = request.result
@@ -38,19 +59,18 @@ export async function obtenerDato(storeName, clave) {
         return
       }
 
-      // Validar si el dato ha expirado
+      // Validar si el dato ha expirado.
       if (payload.timestamp && payload.ttl && Date.now() - payload.timestamp > payload.ttl) {
-        db.transaction(storeName, 'readwrite').objectStore(storeName).delete(clave)
+        eliminarDato(storeName, clave).catch(console.error)
         resolve(null)
       } else {
         resolve(payload.value)
       }
     }
-    request.onerror = () => reject(request.error)
   })
 }
 
-// Guardar dato en base de datos
+// Guardar dato en base de datos.
 export async function guardarDato(storeName, clave, valor, ttlMs = null) {
   const db = await inicializarDB()
   const payload = {
@@ -63,7 +83,24 @@ export async function guardarDato(storeName, clave, valor, ttlMs = null) {
     const store = transaction.objectStore(storeName)
     const request = store.put(payload, clave)
 
-    request.onsuccess = () => resolve(request.result)
+    transaction.onerror = () => reject(transaction.error)
     request.onerror = () => reject(request.error)
+
+    request.onsuccess = () => resolve(request.result)
+  })
+}
+
+// Eliminar dato de base de datos.
+export async function eliminarDato(storeName, clave) {
+  const db = await inicializarDB()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(storeName, 'readwrite')
+    const store = transaction.objectStore(storeName)
+    const request = store.delete(clave)
+
+    transaction.onerror = () => reject(transaction.error)
+    request.onerror = () => reject(request.error)
+
+    request.onsuccess = () => resolve()
   })
 }
