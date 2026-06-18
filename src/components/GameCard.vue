@@ -1,10 +1,18 @@
 <script setup>
+import { useAuthStore } from '../stores/auth'
+
+const authStore = useAuthStore()
+
 defineProps({
   game: {
     type: Object,
     required: true,
   },
 })
+
+const getBasePrice = (game) => {
+  return game.price || ((game.id % 6) + 1) * 10 - 0.01
+}
 </script>
 
 <template>
@@ -27,7 +35,7 @@ defineProps({
           }}
         </span>
         <span class="game-card__price">
-          ${{ game.price ? game.price.toFixed(2) : (((game.id % 6) + 1) * 10 - 0.01).toFixed(2) }}
+          {{ authStore.formatPrice(getBasePrice(game)) }}
         </span>
       </div>
       <div class="game-card__actions">

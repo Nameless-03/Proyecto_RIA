@@ -212,8 +212,8 @@ const handleSavePreferences = () => {
                 {{ t('Dólar ($ USD)') }}
               </option>
               <option value="EUR">Euro (€ EUR)</option>
-              <option value="ARS">
-                {{ t('Peso Argentino ($ ARS)') }}
+              <option value="UYU">
+                {{ t('Peso Uruguayo ($ UYU)') }}
               </option>
             </select>
           </div>

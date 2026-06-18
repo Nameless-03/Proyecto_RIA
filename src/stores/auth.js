@@ -61,6 +61,24 @@ export const useAuthStore = defineStore('auth', {
       localStorage.setItem('user_preferences', JSON.stringify(this.preferences))
     },
 
+    formatPrice(priceInUsd) {
+      if (typeof priceInUsd !== 'number') return ''
+      const currency = this.preferences.currency || 'USD'
+      let rate = 1.0
+      let symbol = '$'
+
+      if (currency === 'EUR') {
+        rate = 0.92
+        symbol = '€'
+      } else if (currency === 'UYU') {
+        rate = 40.0
+        symbol = '$U'
+      }
+
+      const converted = priceInUsd * rate
+      return `${symbol} ${converted.toFixed(2)}`
+    },
+
     updateApiKey(key) {
       this.rawgApiKey = key.trim()
       if (this.rawgApiKey) {

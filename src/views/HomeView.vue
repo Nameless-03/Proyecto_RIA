@@ -6,9 +6,11 @@ import { useGamesStore } from '../stores/games'
 import GameCard from '../components/GameCard.vue'
 import { useFavorites } from '../composables/useFavorites'
 import { useI18n } from '../composables/useI18n'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
 const gamesStore = useGamesStore()
+const authStore = useAuthStore()
 const { isFavorite, toggleFavorite } = useFavorites()
 const { t } = useI18n()
 
@@ -32,13 +34,48 @@ const discoverCategories = ref(gamesStore.homeDiscover)
 const discoverLoading = ref(gamesStore.homeDiscover.length === 0)
 const discoverError = ref(null)
 
+// Recomendados para el usuario
+const recommendedGames = ref([])
+const recommendedGenreName = ref('')
+const recommendedLoading = ref(false)
+const recommendedError = ref(null)
+
 // Navegación interactiva filtrada mediante Pinia hacia el Catálogo
 const exploreCategory = (genreSlug) => {
+  if (authStore.isLoggedIn) {
+    authStore.updatePreferences({
+      preferredGenre: genreSlug,
+    })
+  }
   gamesStore.setTempFilters({ genre: genreSlug, page: 1 })
   router.push('/catalog')
 }
 
 onMounted(async () => {
+  // Cargar juegos recomendados según gustos si está iniciado sesión
+  if (authStore.isLoggedIn && authStore.preferences.preferredGenre) {
+    recommendedLoading.value = true
+    try {
+      const genreSlug = authStore.preferences.preferredGenre
+
+      // Obtener el nombre legible del género
+      const genres = await rawgService.getGenres()
+      const genreObj = genres.find((g) => g.slug === genreSlug)
+      recommendedGenreName.value = genreObj ? genreObj.name : genreSlug
+
+      const data = await rawgService.getGames({
+        genres: genreSlug,
+        page_size: 4,
+      })
+      recommendedGames.value = data.results
+    } catch (err) {
+      recommendedError.value = t('Error al cargar los juegos recomendados.')
+      console.error(err)
+    } finally {
+      recommendedLoading.value = false
+    }
+  }
+
   // Cargar videojuegos destacados (Títulos Destacados)
   try {
     const data = await rawgService.getGames({ page_size: 3 })
@@ -144,6 +181,63 @@ onMounted(async () => {
         </div>
       </div>
     </header>
+
+    <!-- Recommended Games Section (Personalized) -->
+    <section
+      v-if="authStore.isLoggedIn && recommendedGames.length > 0"
+      class="home-recommended container"
+    >
+      <h2 class="home-recommended__title">
+        {{ t('Recomendados para ti') }}
+        <span class="home-recommended__genre-badge">{{ recommendedGenreName }}</span>
+      </h2>
+      <p class="home-recommended__subtitle">
+        {{ t('Basado en tu interés por los juegos de la categoría') }}
+        <strong>{{ recommendedGenreName }}</strong
+        >.
+      </p>
+
+      <div v-if="recommendedLoading" class="home-recommended__loading">
+        {{ t('Cargando recomendaciones personalizadas...') }}
+      </div>
+      <div v-else-if="recommendedError" class="home-recommended__error">
+        {{ recommendedError }}
+      </div>
+      <div v-else class="home-recommended__grid">
+        <GameCard v-for="game in recommendedGames" :key="game.id" :game="game">
+          <template #actions>
+            <RouterLink :to="`/game/${game.id}`" class="btn btn--secondary btn--primary-hover">
+              {{ t('Ver Detalles') }}
+            </RouterLink>
+            <button
+              @click="toggleFavorite(game)"
+              class="btn btn--outline"
+              :class="{ 'btn--active': isFavorite(game.id) }"
+              :title="t('Añadir a favoritos')"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="heart-icon"
+                :class="{ 'heart-icon--filled': isFavorite(game.id) }"
+              >
+                <path
+                  d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                ></path>
+              </svg>
+              {{ t('Fav') }}
+            </button>
+          </template>
+        </GameCard>
+      </div>
+    </section>
 
     <!-- Featured Games Section -->
     <section class="home-featured container">
@@ -885,5 +979,72 @@ body.theme-light .home-discover__category-title {
     flex-direction: column;
     padding: 0 1rem;
   }
+}
+
+/* Recommended Section Styles */
+.home-recommended {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background: linear-gradient(135deg, rgba(145, 70, 255, 0.05) 0%, rgba(14, 14, 16, 0) 100%);
+  border: 1px solid var(--color-border);
+  padding: 2.5rem;
+  border-radius: var(--border-radius-lg);
+  position: relative;
+  overflow: hidden;
+}
+
+.home-recommended::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background-color: var(--color-primary);
+}
+
+.home-recommended__title {
+  font-size: 2rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #ffffff;
+}
+
+body.theme-light .home-recommended__title {
+  color: var(--color-text-primary);
+}
+
+.home-recommended__genre-badge {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.25rem 0.75rem;
+  border-radius: 50px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.home-recommended__subtitle {
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+  margin-top: -0.5rem;
+}
+
+.home-recommended__loading,
+.home-recommended__error {
+  text-align: center;
+  padding: 3rem;
+  color: var(--color-text-secondary);
+}
+
+.home-recommended__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-top: 1rem;
 }
 </style>

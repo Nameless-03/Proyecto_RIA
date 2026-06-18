@@ -1,13 +1,15 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { rawgService } from '../services/rawgService'
 import { useGamesStore } from '../stores/games'
 import GameCard from '../components/GameCard.vue'
 import { useFavorites } from '../composables/useFavorites'
 import { useFilters } from '../composables/useFilters'
 import { useI18n } from '../composables/useI18n'
+import { useAuthStore } from '../stores/auth'
 
 const gamesStore = useGamesStore()
+const authStore = useAuthStore()
 const { isFavorite, toggleFavorite } = useFavorites()
 const { searchInput, selectedGenre, selectedOrdering } = useFilters()
 const { t } = useI18n()
@@ -19,10 +21,12 @@ const loadingMore = ref(false)
 const error = ref(null)
 
 const currentPage = ref(gamesStore.tempFilters.page || 1)
+const pageSize = ref(gamesStore.tempFilters.pageSize || 6)
 const hasNextPage = ref(false)
 const totalGamesCount = ref(0)
 const sentinel = ref(null)
 let observer = null
+const totalPages = computed(() => Math.ceil(totalGamesCount.value / pageSize.value))
 
 // Cargar géneros de videojuegos
 const loadGenres = async () => {
@@ -52,7 +56,7 @@ const loadGames = async () => {
           genres: selectedGenre.value,
           ordering: selectedOrdering.value,
           page: p,
-          page_size: 6,
+          page_size: pageSize.value,
         })
         allResults.push(...data.results)
         hasNextPage.value = !!data.next
@@ -60,11 +64,12 @@ const loadGames = async () => {
       }
       games.value = allResults
     } else {
-      // Cargar página individual
+      // Sincronizar página actual con el store de Pinia
       gamesStore.setTempFilters({
         genre: selectedGenre.value,
         ordering: selectedOrdering.value,
         page: currentPage.value,
+        pageSize: pageSize.value,
       })
 
       const data = await rawgService.getGames({
@@ -72,7 +77,7 @@ const loadGames = async () => {
         genres: selectedGenre.value,
         ordering: selectedOrdering.value,
         page: currentPage.value,
-        page_size: 6,
+        page_size: pageSize.value,
       })
 
       if (currentPage.value === 1) {
@@ -99,6 +104,18 @@ const guardarPosicionScroll = () => {
 
 // Aplicar filtros de búsqueda
 const applyFilters = () => {
+  currentPage.value = 1
+  games.value = []
+  sessionStorage.setItem('catalog_scroll_pos', '0')
+  if (authStore.isLoggedIn && selectedGenre.value) {
+    authStore.updatePreferences({
+      preferredGenre: selectedGenre.value,
+    })
+  }
+  loadGames()
+}
+
+const changePageSize = () => {
   currentPage.value = 1
   games.value = []
   sessionStorage.setItem('catalog_scroll_pos', '0')
@@ -206,6 +223,21 @@ onUnmounted(() => {
           <option value="released">{{ t('Fecha (Más antiguo)') }}</option>
           <option value="-rating">{{ t('Valoración (Más alta)') }}</option>
           <option value="-metacritic">{{ t('Metacritic (Más alto)') }}</option>
+        </select>
+      </div>
+
+      <div class="catalog-filters__group">
+        <label class="catalog-filters__label" for="pageSize">{{ t('Mostrar') }}</label>
+        <select
+          id="pageSize"
+          v-model="pageSize"
+          @change="changePageSize"
+          class="catalog-filters__select"
+        >
+          <option :value="6">6 {{ t('juegos') }}</option>
+          <option :value="9">9 {{ t('juegos') }}</option>
+          <option :value="12">12 {{ t('juegos') }}</option>
+          <option :value="24">24 {{ t('juegos') }}</option>
         </select>
       </div>
     </section>

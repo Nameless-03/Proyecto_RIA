@@ -78,6 +78,19 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+const goToGenre = (genreSlug) => {
+  if (authStore.isLoggedIn) {
+    authStore.updatePreferences({
+      preferredGenre: genreSlug,
+    })
+  }
+  gamesStore.setTempFilters({
+    genre: genreSlug,
+    page: 1,
+  })
+  router.push('/catalog')
+}
 </script>
 
 <template>
@@ -117,7 +130,14 @@ onMounted(async () => {
       >
         <div class="game-detail__hero-content">
           <div class="game-detail__headline">
-            <span class="game-detail__tag" v-for="g in game.genres" :key="g.id">{{ g.name }}</span>
+            <button
+              v-for="g in game.genres"
+              :key="g.id"
+              class="game-detail__tag game-detail__tag--clickable"
+              @click="goToGenre(g.slug)"
+            >
+              {{ g.name }}
+            </button>
           </div>
           <h1 class="game-detail__title">{{ game.name }}</h1>
           <p class="game-detail__release">
@@ -201,11 +221,9 @@ onMounted(async () => {
           <div class="purchase-box">
             <div class="purchase-box__price-row">
               <span class="purchase-box__label">{{ t('Precio Estimado') }}</span>
-              <span class="purchase-box__price"
-                >${{
-                  game.price ? game.price.toFixed(2) : (((game.id % 6) + 1) * 10 - 0.01).toFixed(2)
-                }}</span
-              >
+              <span class="purchase-box__price">
+                {{ authStore.formatPrice(game.price || ((game.id % 6) + 1) * 10 - 0.01) }}
+              </span>
             </div>
 
             <div class="purchase-box__actions">
@@ -389,6 +407,18 @@ onMounted(async () => {
   font-weight: 700;
   padding: 0.25rem 0.75rem;
   border-radius: 50px;
+  border: none;
+}
+
+.game-detail__tag--clickable {
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.game-detail__tag--clickable:hover {
+  background-color: var(--color-primary-hover, var(--color-primary));
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(145, 70, 255, 0.3);
 }
 
 .game-detail__title {

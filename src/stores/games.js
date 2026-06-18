@@ -1,21 +1,26 @@
 import { defineStore } from 'pinia'
 
 export const useGamesStore = defineStore('games', {
-  state: () => ({
-    favorites: JSON.parse(localStorage.getItem('game_favorites')) || [],
-    cart: JSON.parse(localStorage.getItem('game_cart')) || [],
-    lastSearch: sessionStorage.getItem('last_search') || '',
-    tempFilters: JSON.parse(sessionStorage.getItem('temp_filters')) || {
+  state: () => {
+    const defaultFilters = {
       genre: '',
       ordering: '',
       page: 1,
-    },
-    // Estado para caché de la página de inicio
-    homeFeatured: [],
-    homeLatest: [],
-    homeRandomCategories: [],
-    homeDiscover: [],
-  }),
+      pageSize: 6,
+    }
+    const storedFilters = JSON.parse(sessionStorage.getItem('temp_filters')) || {}
+    return {
+      favorites: JSON.parse(localStorage.getItem('game_favorites')) || [],
+      cart: JSON.parse(localStorage.getItem('game_cart')) || [],
+      lastSearch: sessionStorage.getItem('last_search') || '',
+      tempFilters: { ...defaultFilters, ...storedFilters },
+      // Estado para caché de la página de inicio
+      homeFeatured: [],
+      homeLatest: [],
+      homeRandomCategories: [],
+      homeDiscover: [],
+    }
+  },
 
   getters: {
     isFavorite: (state) => (gameId) => {
@@ -95,6 +100,7 @@ export const useGamesStore = defineStore('games', {
         genre: '',
         ordering: '',
         page: 1,
+        pageSize: 6,
       }
       sessionStorage.removeItem('temp_filters')
     },
