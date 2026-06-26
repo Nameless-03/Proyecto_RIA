@@ -37,6 +37,21 @@ export const useGamesStore = defineStore('games', {
     isInCart: (state) => (gameId) => {
       return state.cart.some((game) => game.id === gameId)
     },
+    favoritesGenresStats: (state) => {
+      const stats = {}
+      state.favorites.forEach((game) => {
+        if (game.genres && Array.isArray(game.genres)) {
+          game.genres.forEach((genre) => {
+            const name = genre.name || genre
+            stats[name] = (stats[name] || 0) + 1
+          })
+        }
+      })
+      // Convertir el objeto { "Acción": 3, "RPG": 1 } a un array [{ name: "Acción", count: 3 }] para facilitar uso
+      return Object.entries(stats)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+    },
   },
 
   actions: {
@@ -52,6 +67,7 @@ export const useGamesStore = defineStore('games', {
           rating: game.rating,
           metacritic: game.metacritic,
           price: game.price || ((game.id % 6) + 1) * 10 - 0.01,
+          genres: game.genres || [],
         })
       } else {
         this.favorites.splice(index, 1)

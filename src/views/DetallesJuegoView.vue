@@ -169,8 +169,7 @@ const goToGenre = (genreSlug) => {
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     class="sparkle-icon"
-                  >
-                  </svg>
+                  ></svg>
                   {{ t('Traducido al') }}
                   {{ getLanguageName(authStore.preferences.language) }}
                 </span>

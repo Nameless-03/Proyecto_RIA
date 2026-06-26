@@ -1,9 +1,15 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { useGamesStore } from '../stores/games'
 import { useI18n } from '../composables/useI18n'
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
+import { Pie } from 'vue-chartjs'
+
+ChartJS.register(ArcElement, Tooltip, Legend)
 
 const authStore = useAuthStore()
+const gamesStore = useGamesStore()
 const { t } = useI18n()
 
 // Form States
@@ -46,6 +52,57 @@ const handleSavePreferences = () => {
     showPrefsSuccess.value = false
   }, 3000)
 }
+
+// Chart Data
+const chartData = computed(() => {
+  const stats = gamesStore.favoritesGenresStats
+  const backgroundColors = [
+    '#9146FF',
+    '#00F5D4',
+    '#F15BB5',
+    '#FEE440',
+    '#00BBF9',
+    '#9B5DE5',
+    '#38B000',
+    '#F50057',
+    '#FF9F1C',
+    '#2EC4B6',
+  ]
+  return {
+    labels: stats.map((s) => s.name),
+    datasets: [
+      {
+        backgroundColor: backgroundColors.slice(0, stats.length),
+        borderWidth: 2,
+        borderColor: authStore.theme === 'dark' ? '#2b2b36' : '#ffffff',
+        data: stats.map((s) => s.count),
+      },
+    ],
+  }
+})
+
+const chartOptions = computed(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'bottom',
+      labels: {
+        color: authStore.theme === 'dark' ? '#ffffff' : '#1e1e24',
+        padding: 20,
+        font: {
+          family: 'Inter, system-ui, sans-serif',
+          size: 13,
+        },
+      },
+    },
+    tooltip: {
+      bodyFont: {
+        family: 'Inter, system-ui, sans-serif',
+      },
+    },
+  },
+}))
 </script>
 
 <template>
@@ -265,6 +322,19 @@ const handleSavePreferences = () => {
             {{ t('Guardar Preferencias') }}
           </button>
         </form>
+      </section>
+
+      <!-- Section 3: Estadísticas -->
+      <section class="profile-card profile-card--full-width fade-in">
+        <h2 class="profile-card__title">{{ t('Tus Géneros Favoritos') }}</h2>
+        <div class="stats-container">
+          <div v-if="gamesStore.favoritesGenresStats.length === 0" class="stats-empty">
+            {{ t('Agrega juegos a tus favoritos para ver tus estadísticas.') }}
+          </div>
+          <div v-else class="chart-wrapper">
+            <Pie :data="chartData" :options="chartOptions" />
+          </div>
+        </div>
       </section>
     </div>
   </div>
@@ -502,5 +572,32 @@ body.theme-light .profile-card__title {
   .api-form__input-group {
     flex-direction: column;
   }
+}
+
+/* Stats Chart */
+.stats-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 320px;
+  width: 100%;
+  padding: 1rem 0;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 320px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.stats-empty {
+  color: var(--color-text-secondary);
+  text-align: center;
+  font-style: italic;
+  padding: 2rem;
+  background-color: var(--color-bg-tertiary);
+  border-radius: var(--border-radius-md);
+  border: 1px dashed var(--color-border);
 }
 </style>

@@ -124,15 +124,18 @@ const changePageSize = () => {
 
 // Iniciar observador de scroll infinito
 const iniciarObserver = () => {
-  observer = new IntersectionObserver((entries) => {
-    const entry = entries[0]
-    if (entry.isIntersecting && hasNextPage.value && !loading.value && !loadingMore.value) {
-      currentPage.value++
-      loadGames()
-    }
-  }, {
-    rootMargin: '150px'
-  })
+  observer = new IntersectionObserver(
+    (entries) => {
+      const entry = entries[0]
+      if (entry.isIntersecting && hasNextPage.value && !loading.value && !loadingMore.value) {
+        currentPage.value++
+        loadGames()
+      }
+    },
+    {
+      rootMargin: '150px',
+    },
+  )
 
   if (sentinel.value) {
     observer.observe(sentinel.value)
@@ -150,7 +153,7 @@ onMounted(() => {
   loadGenres()
   loadGames().then(() => {
     iniciarObserver()
-    
+
     // Restaurar posición de scroll
     const scrollGuardado = sessionStorage.getItem('catalog_scroll_pos')
     if (scrollGuardado) {
@@ -158,7 +161,7 @@ onMounted(() => {
         window.scrollTo(0, parseInt(scrollGuardado, 10))
       }, 100)
     }
-    
+
     // Escuchar evento de scroll
     window.addEventListener('scroll', guardarPosicionScroll)
   })

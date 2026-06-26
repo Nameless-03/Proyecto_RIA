@@ -264,7 +264,7 @@ export const rawgService = {
         respuestas.map(async (res) => {
           if (!res.ok) throw new Error('CheapShark API Error en página')
           return res.json()
-        })
+        }),
       )
 
       // Combinar todos los resultados en un único array
@@ -574,12 +574,19 @@ export const rawgService = {
           publishers: [{ name: 'Distribuidor del Juego' }],
         }
       } catch (e) {
-        console.warn('Failed to retrieve CheapShark detail, game not found, falling back to mock:', e)
-        const fallbackMock = mockGames.find((g) => g.id === Number(idOrSlug) || g.slug === idOrSlug) || mockGames[0]
+        console.warn(
+          'Failed to retrieve CheapShark detail, game not found, falling back to mock:',
+          e,
+        )
+        const fallbackMock =
+          mockGames.find((g) => g.id === Number(idOrSlug) || g.slug === idOrSlug) || mockGames[0]
         result = {
           ...fallbackMock,
           id: Number(idOrSlug) || fallbackMock.id,
-          description: fallbackMock.description_raw || fallbackMock.description || 'Descripción no disponible.',
+          description:
+            fallbackMock.description_raw ||
+            fallbackMock.description ||
+            'Descripción no disponible.',
           released: adjustReleaseDate(fallbackMock.released, fallbackMock.id),
         }
       }
