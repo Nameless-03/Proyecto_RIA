@@ -4,13 +4,16 @@ import { RouterView } from 'vue-router'
 import AppNavbar from './components/AppNavbar.vue'
 import { useAuthStore } from './stores/auth'
 import { useOffline } from './composables/useOffline'
+import { precalentarCache } from './composables/usePrecalentamientoCache'
 
 const authStore = useAuthStore()
 const { estaOffline } = useOffline()
 
 // Al montar la app, sincronizamos el tema guardado en localStorage en el body.
+// En background, precalentamos la caché de IndexedDB con datos del catálogo.
 onMounted(() => {
   document.body.className = `theme-${authStore.theme}`
+  precalentarCache()
 })
 </script>
 
