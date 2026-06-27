@@ -46,7 +46,7 @@ const { t } = useI18n()
         </RouterLink>
       </div>
 
-      <div v-else class="favorites-main__grid">
+      <TransitionGroup name="list" tag="div" v-else class="favorites-main__grid">
         <GameCard v-for="game in favorites" :key="game.id" :game="game">
           <template #actions>
             <RouterLink :to="`/game/${game.id}`" class="btn btn--secondary">
@@ -100,7 +100,7 @@ const { t } = useI18n()
             </button>
           </template>
         </GameCard>
-      </div>
+      </TransitionGroup>
     </main>
   </div>
 </template>
@@ -196,5 +196,27 @@ const { t } = useI18n()
 .favorites-main__grid :deep(button.btn--outline.btn--active):hover .heart-icon {
   fill: var(--color-danger) !important;
   stroke: var(--color-danger) !important;
+}
+
+/*
+  ==========================================
+  Requerimiento extra de Animaciones Complejas con (TransitionGroup)
+  ==========================================
+*/
+
+.list-enter-active,
+.list-leave-active,
+.list-move {
+  transition: all 0.5s cubic-bezier(0.55, 0, 0.1, 1);
+}
+
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: scale(0.85) translateY(30px);
+}
+
+.list-leave-active {
+  position: absolute;
 }
 </style>
