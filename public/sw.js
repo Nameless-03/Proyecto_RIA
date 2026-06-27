@@ -1,5 +1,6 @@
 const CACHE_SHELL = 'littlebox-shell-v1'
 const CACHE_API = 'littlebox-api-v1'
+const CACHE_IMAGES = 'littlebox-images-v1'
 
 // Assets del shell de la aplicación (SPA).
 const SHELL_ASSETS = [
@@ -18,7 +19,7 @@ self.addEventListener('install', (event) => {
 
 // Activar SW y limpiar caches viejos.
 self.addEventListener('activate', (event) => {
-  const cachesValidos = new Set([CACHE_SHELL, CACHE_API])
+  const cachesValidos = new Set([CACHE_SHELL, CACHE_API, CACHE_IMAGES])
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
@@ -40,6 +41,16 @@ self.addEventListener('fetch', (event) => {
   // Estrategia: stale-while-revalidate para la API de RAWG.
   if (url.hostname === 'api.rawg.io') {
     event.respondWith(staleWhileRevalidate(CACHE_API, request))
+    return
+  }
+
+  // Estrategia: stale-while-revalidate para imágenes externas (RAWG + Steam CDN).
+  if (
+    url.hostname === 'media.rawg.io' ||
+    url.hostname === 'cdn.cloudflare.steamstatic.com' ||
+    url.hostname === 'cdn.akamai.steamstatic.com'
+  ) {
+    event.respondWith(staleWhileRevalidate(CACHE_IMAGES, request))
     return
   }
 
