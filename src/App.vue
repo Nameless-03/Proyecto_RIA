@@ -3,8 +3,10 @@ import { onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 import AppNavbar from './components/AppNavbar.vue'
 import { useAuthStore } from './stores/auth'
+import { useOffline } from './composables/useOffline'
 
 const authStore = useAuthStore()
+const { estaOffline } = useOffline()
 
 // Al montar la app, sincronizamos el tema guardado en localStorage en el body.
 onMounted(() => {
@@ -14,6 +16,22 @@ onMounted(() => {
 
 <template>
   <div class="app-layout">
+    <!-- Banner de modo offline -->
+    <Transition name="offline-banner">
+      <div v-if="estaOffline" class="offline-banner" role="alert" aria-live="assertive">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+          <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+          <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+          <path d="M10.71 5.05A16 16 0 0 1 22.56 9"></path>
+          <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+          <line x1="12" y1="20" x2="12.01" y2="20"></line>
+        </svg>
+        <span>Sin conexión — navegando con datos en caché</span>
+      </div>
+    </Transition>
+
     <!-- Navbar Global -->
     <AppNavbar />
 
@@ -82,6 +100,40 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* Banner offline */
+.offline-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  background: linear-gradient(90deg, #b91c1c, #dc2626);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.55rem 1rem;
+  text-align: center;
+  letter-spacing: 0.01em;
+  position: sticky;
+  top: 0;
+  z-index: 9999;
+}
+
+.offline-banner svg {
+  flex-shrink: 0;
+}
+
+/* Transición de entrada/salida del banner */
+.offline-banner-enter-active,
+.offline-banner-leave-active {
+  transition: all 0.3s ease;
+}
+
+.offline-banner-enter-from,
+.offline-banner-leave-to {
+  opacity: 0;
+  transform: translateY(-100%);
+}
+
 .app-layout {
   display: flex;
   flex-direction: column;
