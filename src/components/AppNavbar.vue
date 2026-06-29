@@ -1,11 +1,13 @@
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useGamesStore } from '../stores/games'
 import { useI18n } from '../composables/useI18n'
 
 const authStore = useAuthStore()
 const gamesStore = useGamesStore()
+const router = useRouter()
 const { t } = useI18n()
 
 const isMobileMenuOpen = ref(false)
@@ -16,6 +18,12 @@ const toggleMobileMenu = () => {
 }
 
 const toggleCart = () => {
+  if (!authStore.isLoggedIn) {
+    if (confirm(t('Debes iniciar sesión para usar el carrito. ¿Quieres ir a tu perfil para iniciar sesión?'))) {
+      router.push('/profile')
+    }
+    return
+  }
   isCartOpen.value = !isCartOpen.value
 }
 

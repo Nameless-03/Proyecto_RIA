@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { useAuthStore } from './auth'
 
 export const useGamesStore = defineStore('games', {
   state: () => {
@@ -9,9 +10,12 @@ export const useGamesStore = defineStore('games', {
       pageSize: 6,
     }
     const storedFilters = JSON.parse(sessionStorage.getItem('temp_filters')) || {}
+    const authUser = JSON.parse(localStorage.getItem('auth_user'))
+    const username = authUser ? authUser.username : ''
+    const userCart = username ? JSON.parse(localStorage.getItem(`game_cart_${username}`)) || [] : []
     return {
       favorites: JSON.parse(localStorage.getItem('game_favorites')) || [],
-      cart: JSON.parse(localStorage.getItem('game_cart')) || [],
+      cart: userCart,
       lastSearch: sessionStorage.getItem('last_search') || '',
       tempFilters: { ...defaultFilters, ...storedFilters },
       // Estado para caché de la página de inicio
@@ -75,6 +79,14 @@ export const useGamesStore = defineStore('games', {
       localStorage.setItem('game_favorites', JSON.stringify(this.favorites))
     },
 
+    loadUserCart(username) {
+      if (username) {
+        this.cart = JSON.parse(localStorage.getItem(`game_cart_${username}`)) || []
+      } else {
+        this.cart = []
+      }
+    },
+
     addToCart(game) {
       if (this.isInCart(game.id)) return
 
@@ -85,20 +97,32 @@ export const useGamesStore = defineStore('games', {
         background_image: game.background_image,
         price: game.price || ((game.id % 6) + 1) * 10 - 0.01,
       })
-      localStorage.setItem('game_cart', JSON.stringify(this.cart))
+      const authStore = useAuthStore()
+      const username = authStore.user ? authStore.user.username : ''
+      if (username) {
+        localStorage.setItem(`game_cart_${username}`, JSON.stringify(this.cart))
+      }
     },
 
     removeFromCart(gameId) {
       const index = this.cart.findIndex((game) => game.id === gameId)
       if (index !== -1) {
         this.cart.splice(index, 1)
-        localStorage.setItem('game_cart', JSON.stringify(this.cart))
+        const authStore = useAuthStore()
+        const username = authStore.user ? authStore.user.username : ''
+        if (username) {
+          localStorage.setItem(`game_cart_${username}`, JSON.stringify(this.cart))
+        }
       }
     },
 
     clearCart() {
       this.cart = []
-      localStorage.removeItem('game_cart')
+      const authStore = useAuthStore()
+      const username = authStore.user ? authStore.user.username : ''
+      if (username) {
+        localStorage.removeItem(`game_cart_${username}`)
+      }
     },
 
     setLastSearch(search) {

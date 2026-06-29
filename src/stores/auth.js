@@ -10,7 +10,7 @@ export const useAuthStore = defineStore('auth', {
     }
     const savedPrefs = JSON.parse(localStorage.getItem('user_preferences')) || {}
     return {
-      user: JSON.parse(sessionStorage.getItem('auth_user')) || null,
+      user: JSON.parse(localStorage.getItem('auth_user')) || null,
       theme: localStorage.getItem('user_theme') || 'dark',
       preferences: { ...defaultPrefs, ...savedPrefs },
       rawgApiKey: localStorage.getItem('rawg_api_key') || '',
@@ -26,7 +26,7 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
-    login(username, _password) {
+    async login(username, _password) {
       // Simulación de login - acepta cualquier usuario no vacío
       if (!username || !username.trim()) {
         throw new Error('El nombre de usuario es obligatorio')
@@ -39,7 +39,12 @@ export const useAuthStore = defineStore('auth', {
       }
 
       this.user = simulatedUser
-      sessionStorage.setItem('auth_user', JSON.stringify(simulatedUser))
+      localStorage.setItem('auth_user', JSON.stringify(simulatedUser))
+
+      // Sincronizar el carrito del usuario
+      const { useGamesStore } = await import('./games')
+      const gamesStore = useGamesStore()
+      gamesStore.loadUserCart(simulatedUser.username)
 
       // Inicializar género preferido por defecto si está vacío para mostrar Recomendados de inmediato
       if (!this.preferences.preferredGenre) {
@@ -49,9 +54,14 @@ export const useAuthStore = defineStore('auth', {
       return simulatedUser
     },
 
-    logout() {
+    async logout() {
       this.user = null
-      sessionStorage.removeItem('auth_user')
+      localStorage.removeItem('auth_user')
+
+      // Sincronizar el carrito del usuario (vaciarlo en memoria)
+      const { useGamesStore } = await import('./games')
+      const gamesStore = useGamesStore()
+      gamesStore.loadUserCart('')
     },
 
     setTheme(newTheme) {
