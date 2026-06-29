@@ -49,8 +49,10 @@ onMounted(async () => {
   try {
     const gameId = route.params.id
     const gameData = await rawgService.getGameDetail(gameId)
+    if (!gameData) {
+      throw new Error('Juego no encontrado en caché y sin conexión')
+    }
     game.value = gameData
-
     const desc = gameData.description || gameData.description_raw || ''
     originalDescription.value = desc
 

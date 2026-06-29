@@ -104,3 +104,30 @@ export async function eliminarDato(storeName, clave) {
     request.onsuccess = () => resolve()
   })
 }
+
+// Obtener todos los datos de un store.
+export async function obtenerTodosLosDatos(storeName) {
+  const db = await inicializarDB()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(storeName, 'readonly')
+    const store = transaction.objectStore(storeName)
+    const request = store.getAll()
+
+    transaction.onerror = () => reject(transaction.error)
+    request.onerror = () => reject(request.error)
+
+    request.onsuccess = () => {
+      const results = request.result || []
+      const validResults = results
+        .filter((payload) => {
+          if (payload && payload.timestamp && payload.ttl && Date.now() - payload.timestamp > payload.ttl) {
+            return false
+          }
+          return true
+        })
+        .map((payload) => payload.value)
+      resolve(validResults)
+    }
+  })
+}
+

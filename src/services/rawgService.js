@@ -1,5 +1,4 @@
-import { mockGames } from '../data/mockGames'
-import { obtenerDato, guardarDato } from './dbService'
+import { obtenerDato, guardarDato, obtenerTodosLosDatos } from './dbService'
 
 const BASE_URL = 'https://api.rawg.io/api'
 const CHEAPSHARK_URL = 'https://www.cheapshark.com/api/1.0'
@@ -424,21 +423,37 @@ export const rawgService = {
       }
       return finalResult
     } catch (apiError) {
-      console.warn('CheapShark API failed, using static mockGames data:', apiError)
+      console.warn('CheapShark API failed, loading games from cache:', apiError)
 
-      // Static mockGames fallback
-      let results = [...mockGames]
+      let results = []
+      try {
+        const allCachedData = await obtenerTodosLosDatos('games')
+        const uniqueGames = new Map()
+        for (const item of allCachedData) {
+          if (!item) continue
+          if (Array.isArray(item.results)) {
+            for (const g of item.results) {
+              if (g && g.id) uniqueGames.set(g.id, g)
+            }
+          } else if (item.id) {
+            uniqueGames.set(item.id, item)
+          }
+        }
+        results = Array.from(uniqueGames.values())
+      } catch (cacheErr) {
+        console.error('Error fetching fallback data from cache:', cacheErr)
+      }
+
       if (search) {
         const query = search.toLowerCase()
         results = results.filter((g) => g.name.toLowerCase().includes(query))
       }
       if (genres) {
         const genreSlugs = genres.split(',').map((g) => g.trim())
-        results = results.filter((g) => g.genres.some((genre) => genreSlugs.includes(genre.slug)))
+        results = results.filter((g) => g.genres && g.genres.some((genre) => genreSlugs.includes(genre.slug)))
       }
 
-      // Adjust mock dates and filter future/empty/NSFW games
-      const adjustedMockGames = results
+      const filteredResults = results
         .filter((game) => {
           if (!game.background_image) return false
           if (game.released) {
@@ -454,27 +469,17 @@ export const rawgService = {
 
           return true
         })
-        .map((game) => ({
-          ...game,
-          released: adjustReleaseDate(game.released, game.id),
-        }))
 
       const startIndex = (page - 1) * page_size
       const finalResult = {
-        results: adjustedMockGames.slice(startIndex, startIndex + page_size),
-        count: adjustedMockGames.length,
-        next: adjustedMockGames.length > startIndex + page_size ? page + 1 : null,
+        results: filteredResults.slice(startIndex, startIndex + page_size),
+        count: filteredResults.length,
+        next: filteredResults.length > startIndex + page_size ? page + 1 : null,
         previous: page > 1 ? page - 1 : null,
-      }
-      try {
-        await guardarDato('games', claveCache, finalResult, 600000)
-      } catch (err) {
-        console.warn('Error writing to IndexedDB games lists:', err)
       }
       return finalResult
     }
   },
-
   /**
    * Obtener detalle de un videojuego por ID o slug
    */
@@ -537,14 +542,27 @@ export const rawgService = {
     }
 
     if (!result) {
-      // Try finding in mockGames first
-      const mockGame = mockGames.find((g) => g.id === Number(idOrSlug) || g.slug === idOrSlug)
-      if (mockGame) {
-        result = {
-          ...mockGame,
-          description: mockGame.description_raw,
-          released: adjustReleaseDate(mockGame.released, mockGame.id),
+      try {
+        const allCachedData = await obtenerTodosLosDatos('games')
+        for (const item of allCachedData) {
+          if (!item) continue
+          if (Array.isArray(item.results)) {
+            const found = item.results.find((g) => g.id === Number(idOrSlug) || g.slug === idOrSlug)
+            if (found) {
+              result = {
+                ...found,
+                description: found.description || `Información de catálogo para <strong>${found.name}</strong>.`,
+                released: adjustReleaseDate(found.released, found.id),
+              }
+              break
+            }
+          } else if (item.id === Number(idOrSlug) || item.slug === idOrSlug) {
+            result = item
+            break
+          }
         }
+      } catch (cacheErr) {
+        console.warn('Error searching cache for detail:', cacheErr)
       }
     }
 
@@ -609,24 +627,34 @@ export const rawgService = {
         }
       } catch (e) {
         console.warn(
-          'Failed to retrieve CheapShark detail, game not found, falling back to mock:',
+          'Failed to retrieve CheapShark detail, game not found, using cache search fallback:',
           e,
         )
-        const fallbackMock =
-          mockGames.find((g) => g.id === Number(idOrSlug) || g.slug === idOrSlug) || mockGames[0]
-        result = {
-          ...fallbackMock,
-          id: Number(idOrSlug) || fallbackMock.id,
-          description:
-            fallbackMock.description_raw ||
-            fallbackMock.description ||
-            'Descripción no disponible.',
-          released: adjustReleaseDate(fallbackMock.released, fallbackMock.id),
+        try {
+          const allCachedData = await obtenerTodosLosDatos('games')
+          for (const item of allCachedData) {
+            if (!item) continue
+            if (Array.isArray(item.results)) {
+              const found = item.results.find((g) => g.id === Number(idOrSlug) || g.slug === idOrSlug)
+              if (found) {
+                result = {
+                  ...found,
+                  description: found.description || `Información de catálogo para <strong>${found.name}</strong>.`,
+                  released: adjustReleaseDate(found.released, found.id),
+                }
+                break
+              }
+            } else if (item.id === Number(idOrSlug) || item.slug === idOrSlug) {
+              result = item
+              break
+            }
+          }
+        } catch (cacheErr) {
+          console.warn('Error searching cache in fallback:', cacheErr)
         }
       }
     }
 
-    // Guardar en caché temporal de la sesión
     try {
       await guardarDato('games', claveCache, result, 600000)
     } catch (err) {

@@ -1,5 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import CatalogoView from '../views/CatalogoView.vue'
+import DetallesJuegoView from '../views/DetallesJuegoView.vue'
+import FavoritosView from '../views/FavoritosView.vue'
+import PerfilView from '../views/PerfilView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -12,22 +16,22 @@ const router = createRouter({
     {
       path: '/catalog',
       name: 'catalog',
-      component: () => import('../views/CatalogoView.vue'),
+      component: CatalogoView,
     },
     {
       path: '/game/:id',
       name: 'game-detail',
-      component: () => import('../views/DetallesJuegoView.vue'),
+      component: DetallesJuegoView,
     },
     {
       path: '/favorites',
       name: 'favorites',
-      component: () => import('../views/FavoritosView.vue'),
+      component: FavoritosView,
     },
     {
       path: '/profile',
       name: 'profile',
-      component: () => import('../views/PerfilView.vue'),
+      component: PerfilView,
     },
   ],
   // Desplazar la página al inicio al cambiar de ruta
@@ -41,3 +45,4 @@ const router = createRouter({
 })
 
 export default router
+
