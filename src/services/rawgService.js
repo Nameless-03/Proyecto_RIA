@@ -138,6 +138,29 @@ export async function fetchFromRawg(endpoint, params = {}) {
   return response.json()
 }
 
+// Guardar detalles básicos de los juegos del listado para que estén disponibles offline
+async function cachearDetallesBasicos(juegos, prefix) {
+  if (!juegos || !Array.isArray(juegos)) return
+  for (const game of juegos) {
+    const claveCache = `${prefix}_game_detail_cache_${game.id}`
+    try {
+      const cached = await obtenerDato('games', claveCache)
+      if (!cached) {
+        const detalleBasico = {
+          ...game,
+          description: `Información de catálogo para <strong>${game.name}</strong>. Conéctate a internet para cargar la descripción completa y detalles adicionales del desarrollador.`,
+          developers: [{ name: 'Desarrollador Oficial' }],
+          publishers: [{ name: 'Distribuidor del Juego' }],
+          short_screenshots: game.short_screenshots || [{ id: 1, image: game.background_image }],
+        }
+        await guardarDato('games', claveCache, detalleBasico, 600000)
+      }
+    } catch (err) {
+      console.warn('Error cacheando detalle básico:', err)
+    }
+  }
+}
+
 export const rawgService = {
   /**
    * Obtener listado de videojuegos con filtros opcionales (RAWG o CheapShark fallback)
@@ -154,9 +177,12 @@ export const rawgService = {
     const prefix = isUsingRealApi() ? 'rawg' : 'cheapshark'
     const claveCache = `${prefix}_games_list_${JSON.stringify(cacheParams)}`
 
-    // Buscar listado en caché temporal
+    // Buscar listado en caché temporal (intentando ambos prefijos por resiliencia offline)
     try {
-      const cachedList = await obtenerDato('games', claveCache)
+      const rawgClave = `rawg_games_list_${JSON.stringify(cacheParams)}`
+      const cheapsharkClave = `cheapshark_games_list_${JSON.stringify(cacheParams)}`
+      const cachedList =
+        (await obtenerDato('games', rawgClave)) || (await obtenerDato('games', cheapsharkClave))
       if (cachedList) {
         return cachedList
       }
@@ -166,8 +192,9 @@ export const rawgService = {
 
     if (isUsingRealApi()) {
       try {
-        // Pedimos la cantidad exacta de juegos al servidor para alinear correctamente la paginación.
-        const params = { page, page_size }
+        // Técnica de sobremuestreo (Oversampling): pedimos N * 3 juegos al servidor
+        // para aplicar filtros locales y conservar la consistencia de la grilla en la UI.
+        const params = { page, page_size: page_size * 3 }
         if (search) params.search = search
         if (genres) params.genres = genres
         if (ordering) params.ordering = ordering
@@ -224,11 +251,13 @@ export const rawgService = {
           return true
         })
 
-        // Adaptamos el formato de lanzamiento
-        const adjustedResults = filteredResults.map((game) => ({
-          ...game,
-          released: adjustReleaseDate(game.released, game.id),
-        }))
+        // Adaptamos el formato de lanzamiento y tomamos exactamente la cantidad solicitada (page_size)
+        const adjustedResults = filteredResults
+          .map((game) => ({
+            ...game,
+            released: adjustReleaseDate(game.released, game.id),
+          }))
+          .slice(0, page_size)
 
         const finalResult = {
           results: adjustedResults,
@@ -236,6 +265,7 @@ export const rawgService = {
           next: data.next ? page + 1 : null,
           previous: page > 1 ? page - 1 : null,
         }
+        cachearDetallesBasicos(adjustedResults, 'rawg').catch(() => null)
         try {
           await guardarDato('games', claveCache, finalResult, 600000)
         } catch (err) {
@@ -386,6 +416,7 @@ export const rawgService = {
         next: mappedGames.length > startIndex + page_size ? page + 1 : null,
         previous: page > 1 ? page - 1 : null,
       }
+      cachearDetallesBasicos(paginatedResults, 'cheapshark').catch(() => null)
       try {
         await guardarDato('games', claveCache, finalResult, 600000)
       } catch (err) {
@@ -448,17 +479,20 @@ export const rawgService = {
    * Obtener detalle de un videojuego por ID o slug
    */
   async getGameDetail(idOrSlug) {
-    // Buscar detalle en caché temporal de la sesión
-    const prefix = isUsingRealApi() ? 'rawg' : 'cheapshark'
-    const claveCache = `${prefix}_game_detail_cache_${idOrSlug}`
+    // Buscar detalle en caché temporal de la sesión (intentando ambos prefijos por resiliencia offline)
     try {
-      const cachedDetail = await obtenerDato('games', claveCache)
+      const cachedDetail =
+        (await obtenerDato('games', `rawg_game_detail_cache_${idOrSlug}`)) ||
+        (await obtenerDato('games', `cheapshark_game_detail_cache_${idOrSlug}`))
       if (cachedDetail) {
         return cachedDetail
       }
     } catch (err) {
       console.warn('Error reading from IndexedDB games:', err)
     }
+
+    const prefix = isUsingRealApi() ? 'rawg' : 'cheapshark'
+    const claveCache = `${prefix}_game_detail_cache_${idOrSlug}`
 
     let result = null
 

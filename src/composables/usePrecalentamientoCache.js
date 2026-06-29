@@ -19,6 +19,14 @@ function generarCombinacionesCatalogo() {
     }
   }
 
+  // Precalentar también los géneros populares para el Home/Descubre y Recomendaciones
+  const popularGenres = ['action', 'indie', 'adventure', 'role-playing-games-rpg', 'shooter', 'puzzle']
+  for (const genre of popularGenres) {
+    for (const page_size of [4, 12]) {
+      combinaciones.push({ page: 1, page_size, ordering: '', genres: genre, search: '' })
+    }
+  }
+
   return combinaciones
 }
 
@@ -49,9 +57,7 @@ export async function precalentarCache() {
     for (let i = 0; i < combinaciones.length; i += LOTE) {
       const lote = combinaciones.slice(i, i + LOTE)
       const resultados = await Promise.all(
-        lote.map((params) =>
-          rawgService.getGames(params).catch(() => null),
-        ),
+        lote.map((params) => rawgService.getGames(params).catch(() => null)),
       )
       // Acumular juegos únicos por id.
       for (const resultado of resultados) {
@@ -96,10 +102,22 @@ export async function precalentarCache() {
       )
     }
 
+    // Prefetchear los chunks de javascript de todas las vistas para que estén disponibles sin conexión
+    try {
+      import('../views/CatalogoView.vue').catch(() => null)
+      import('../views/DetallesJuegoView.vue').catch(() => null)
+      import('../views/FavoritosView.vue').catch(() => null)
+      import('../views/PerfilView.vue').catch(() => null)
+    } catch {
+      // Silenciar
+    }
+
     // Marcar como completado.
     await guardarDato('games', CLAVE_PRIMER_ACCESO, true, TTL_PRECALENTAMIENTO)
 
-    console.log(`[Cache] Precalentamiento completado. ${idsUnicos.length} juegos con detalles e imágenes cacheados.`)
+    console.log(
+      `[Cache] Precalentamiento completado. ${idsUnicos.length} juegos con detalles e imágenes cacheados.`,
+    )
   } catch (err) {
     console.warn('[Cache] Error durante precalentamiento:', err)
   }

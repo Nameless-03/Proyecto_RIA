@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { rawgService } from '../services/rawgService'
 import { useGamesStore } from '../stores/games'
 import GameCard from '../components/GameCard.vue'
@@ -26,7 +26,6 @@ const hasNextPage = ref(false)
 const totalGamesCount = ref(0)
 const sentinel = ref(null)
 let observer = null
-const totalPages = computed(() => Math.ceil(totalGamesCount.value / pageSize.value))
 
 // Cargar géneros de videojuegos
 const loadGenres = async () => {
@@ -323,140 +322,3 @@ onUnmounted(() => {
     </main>
   </div>
 </template>
-
-<style scoped>
-.catalog-view {
-  padding-top: 2rem;
-  padding-bottom: 4rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.catalog-header {
-  border-left: 4px solid var(--color-primary);
-  padding-left: 1rem;
-}
-
-.catalog-header__title {
-  font-size: 2.25rem;
-  font-weight: 800;
-}
-
-.catalog-header__subtitle {
-  color: var(--color-text-secondary);
-}
-
-/* Filters Bar */
-.catalog-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  background-color: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  padding: 1.5rem;
-  border-radius: var(--border-radius-lg);
-}
-
-.catalog-filters__group {
-  flex: 1;
-  min-width: 220px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.catalog-filters__label {
-  font-size: 0.85rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--color-text-secondary);
-  letter-spacing: 0.5px;
-}
-
-.catalog-filters__input,
-.catalog-filters__select {
-  width: 100%;
-  padding: 0.6rem 1rem;
-  border-radius: var(--border-radius-md);
-  border: 2px solid var(--color-border);
-  background-color: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
-  transition: var(--transition-smooth);
-}
-
-.catalog-filters__input:focus,
-.catalog-filters__select:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(145, 70, 255, 0.15);
-}
-
-/* Games Grid */
-.catalog-main {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.catalog-main__loading,
-.catalog-main__error,
-.catalog-main__empty {
-  text-align: center;
-  padding: 4rem 2rem;
-  background-color: var(--color-bg-secondary);
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-secondary);
-}
-
-.catalog-main__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 2rem;
-}
-
-.btn--active {
-  background-color: var(--color-accent-purple-light);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.heart-icon {
-  stroke: currentColor;
-  transition:
-    transform 0.2s ease,
-    fill 0.2s ease;
-}
-
-.heart-icon--filled {
-  fill: var(--color-primary);
-  stroke: var(--color-primary);
-}
-
-.btn--active .heart-icon {
-  stroke: var(--color-primary);
-  fill: var(--color-primary);
-}
-
-/* Scroll Infinito */
-.catalog-sentinel {
-  min-height: 50px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 1rem;
-  margin-top: 1rem;
-}
-
-.catalog-main__loading-more {
-  color: var(--color-text-secondary);
-  font-weight: 600;
-  text-align: center;
-}
-
-@media (max-width: 768px) {
-  .catalog-filters {
-    flex-direction: column;
-  }
-}
-</style>

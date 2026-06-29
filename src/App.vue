@@ -22,7 +22,17 @@ onMounted(() => {
     <!-- Banner de modo offline -->
     <Transition name="offline-banner">
       <div v-if="estaOffline" class="offline-banner" role="alert" aria-live="assertive">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
           <line x1="1" y1="1" x2="23" y2="23"></line>
           <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
           <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
@@ -101,134 +111,3 @@ onMounted(() => {
     </footer>
   </div>
 </template>
-
-<style scoped>
-/* Banner offline */
-.offline-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  background: linear-gradient(90deg, #b91c1c, #dc2626);
-  color: #fff;
-  font-size: 0.875rem;
-  font-weight: 600;
-  padding: 0.55rem 1rem;
-  text-align: center;
-  letter-spacing: 0.01em;
-  position: sticky;
-  top: 0;
-  z-index: 9999;
-}
-
-.offline-banner svg {
-  flex-shrink: 0;
-}
-
-/* Transición de entrada/salida del banner */
-.offline-banner-enter-active,
-.offline-banner-leave-active {
-  transition: all 0.3s ease;
-}
-
-.offline-banner-enter-from,
-.offline-banner-leave-to {
-  opacity: 0;
-  transform: translateY(-100%);
-}
-
-.app-layout {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-.app-layout__main {
-  flex-grow: 1;
-  width: 100%;
-}
-
-/* Footer styling in Twitch theme */
-.app-footer {
-  background-color: var(--color-bg-secondary);
-  border-top: 1px solid var(--color-border);
-  padding: 3rem 0 1.5rem;
-  margin-top: auto;
-  color: var(--color-text-secondary);
-}
-
-.app-footer__container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 2.5rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.app-footer__section {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.app-footer__title {
-  color: #ffffff;
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-
-.app-footer__title--logo {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.app-footer__logo-svg {
-  stroke: var(--color-primary);
-}
-
-body.theme-light .app-footer__title {
-  color: var(--color-text-primary);
-}
-
-.app-footer__text {
-  font-size: 0.95rem;
-  line-height: 1.6;
-}
-
-.app-footer__links {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.app-footer__link {
-  font-size: 0.95rem;
-}
-
-.app-footer__link:hover {
-  color: var(--color-primary);
-}
-
-.app-footer__copyright {
-  text-align: center;
-  font-size: 0.85rem;
-  margin-top: 1.5rem;
-  color: var(--color-text-secondary);
-}
-
-.text-success {
-  color: var(--color-accent-green);
-}
-
-.text-warning {
-  color: #ffc107;
-}
-
-@media (max-width: 768px) {
-  .app-footer__container {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-}
-</style>

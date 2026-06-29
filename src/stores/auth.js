@@ -40,6 +40,12 @@ export const useAuthStore = defineStore('auth', {
 
       this.user = simulatedUser
       sessionStorage.setItem('auth_user', JSON.stringify(simulatedUser))
+
+      // Inicializar género preferido por defecto si está vacío para mostrar Recomendados de inmediato
+      if (!this.preferences.preferredGenre) {
+        this.updatePreferences({ preferredGenre: 'action' })
+      }
+
       return simulatedUser
     },
 

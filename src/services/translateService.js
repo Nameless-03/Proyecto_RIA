@@ -8,6 +8,11 @@ export async function translateText(text, targetLang, sourceLang = 'auto') {
     return text
   }
 
+  // Evitar peticiones de red si estamos offline para evitar spam de errores en consola
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return text
+  }
+
   // High performance cache for common game words and genre names
   const genreCache = {
     es: {

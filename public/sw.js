@@ -73,9 +73,12 @@ async function cacheFirstConFallback(request) {
     }
     return response
   } catch {
-    // Sin red y sin cache: devolver index.html para que Vue Router maneje la ruta.
-    const fallback = await caches.match('/index.html')
-    return fallback || new Response('Sin conexión', { status: 503 })
+    // Solo devolver index.html para peticiones de navegación de páginas (HTML)
+    if (request.mode === 'navigate' || (request.headers.get('accept') && request.headers.get('accept').includes('text/html'))) {
+      const fallback = await caches.match('/index.html')
+      if (fallback) return fallback
+    }
+    return new Response('Recurso no disponible offline', { status: 503 })
   }
 }
 
@@ -91,8 +94,21 @@ async function staleWhileRevalidate(cacheName, request) {
     })
     .catch(() => null)
 
-  // Si hay cache, servirlo inmediatamente (actualización en background).
-  return cached || fetchPromise || new Response(JSON.stringify({ error: 'offline' }), {
+  if (cached) {
+    // Si ya está cacheado, devolvemos el cache inmediatamente y dejamos que fetchPromise corra en background.
+    return cached
+  }
+
+  // Si no está cacheado, esperamos por la red
+  try {
+    const networkResponse = await fetchPromise
+    if (networkResponse) return networkResponse
+  } catch {
+    // fall through to fallback response
+  }
+
+  // Si no hay cache ni red, devolvemos un JSON de error de red estándar
+  return new Response(JSON.stringify({ error: 'offline', results: [] }), {
     status: 503,
     headers: { 'Content-Type': 'application/json' },
   })
