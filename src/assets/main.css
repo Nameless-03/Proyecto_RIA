@@ -2133,3 +2133,62 @@ body.theme-light .profile-card__title {
   border-radius: var(--border-radius-md);
   border: 1px dashed var(--color-border);
 }
+
+/* Cart Dropdown Login Form */
+.cart-dropdown__login {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cart-dropdown__login-text {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+  margin-bottom: 0.25rem;
+}
+
+.cart-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cart-login-form__error {
+  background-color: rgba(220, 38, 38, 0.15);
+  border: 1px solid var(--color-danger);
+  color: #ff6b6b;
+  padding: 0.5rem;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.cart-login-form__field {
+  display: flex;
+  flex-direction: column;
+}
+
+.cart-login-form__input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  transition: var(--transition-smooth);
+}
+
+.cart-login-form__input:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+.cart-login-form__btn {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+

@@ -1,13 +1,11 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useGamesStore } from '../stores/games'
 import { useI18n } from '../composables/useI18n'
 
 const authStore = useAuthStore()
 const gamesStore = useGamesStore()
-const router = useRouter()
 const { t } = useI18n()
 
 const isMobileMenuOpen = ref(false)
@@ -18,13 +16,22 @@ const toggleMobileMenu = () => {
 }
 
 const toggleCart = () => {
-  if (!authStore.isLoggedIn) {
-    if (confirm(t('Debes iniciar sesión para usar el carrito. ¿Quieres ir a tu perfil para iniciar sesión?'))) {
-      router.push('/profile')
-    }
-    return
-  }
   isCartOpen.value = !isCartOpen.value
+}
+
+const cartUsername = ref('')
+const cartPassword = ref('')
+const cartLoginError = ref('')
+
+const handleCartLogin = () => {
+  cartLoginError.value = ''
+  try {
+    authStore.login(cartUsername.value, cartPassword.value)
+    cartUsername.value = ''
+    cartPassword.value = ''
+  } catch (err) {
+    cartLoginError.value = err.message
+  }
 }
 
 const toggleTheme = () => {
@@ -210,61 +217,97 @@ const checkout = () => {
           <div v-if="isCartOpen" class="cart-dropdown fade-in">
             <h4 class="cart-dropdown__title">{{ t('Carrito de Compras') }}</h4>
 
-            <div v-if="gamesStore.cartCount === 0" class="cart-dropdown__empty">
-              {{ t('El carrito está vacío.') }}
+            <!-- Formulario de login si no hay sesión activa -->
+            <div v-if="!authStore.isLoggedIn" class="cart-dropdown__login">
+              <p class="cart-dropdown__login-text">
+                {{ t('Inicia sesión para usar el carrito.') }}
+              </p>
+              <form @submit.prevent="handleCartLogin" class="cart-login-form">
+                <div v-if="cartLoginError" class="cart-login-form__error">
+                  {{ cartLoginError }}
+                </div>
+                <div class="cart-login-form__field">
+                  <input
+                    type="text"
+                    v-model="cartUsername"
+                    placeholder="Usuario"
+                    class="cart-login-form__input"
+                    required
+                  />
+                </div>
+                <div class="cart-login-form__field">
+                  <input
+                    type="password"
+                    v-model="cartPassword"
+                    placeholder="Contraseña"
+                    class="cart-login-form__input"
+                    required
+                  />
+                </div>
+                <button type="submit" class="btn btn--primary btn--small cart-login-form__btn">
+                  {{ t('Ingresar') }}
+                </button>
+              </form>
             </div>
 
-            <div v-else class="cart-dropdown__content">
-              <ul class="cart-dropdown__list">
-                <li v-for="item in gamesStore.cart" :key="item.id" class="cart-item">
-                  <img
-                    :src="item.background_image"
-                    :alt="item.name"
-                    class="cart-item__img"
-                    loading="lazy"
-                  />
-                  <div class="cart-item__details">
-                    <span class="cart-item__name">{{ item.name }}</span>
-                    <span class="cart-item__price">{{ authStore.formatPrice(item.price) }}</span>
-                  </div>
-                  <button
-                    @click="gamesStore.removeFromCart(item.id)"
-                    class="cart-item__remove-btn"
-                    :title="t('Eliminar')"
-                  >
-                    <!-- Close SVG Outline -->
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                  </button>
-                </li>
-              </ul>
-
-              <div class="cart-dropdown__total">
-                <span>{{ t('Total') }}:</span>
-                <span class="cart-dropdown__total-price">
-                  {{ authStore.formatPrice(gamesStore.cartTotal) }}
-                </span>
+            <!-- Contenido del carrito si la sesión está iniciada -->
+            <div v-else>
+              <div v-if="gamesStore.cartCount === 0" class="cart-dropdown__empty">
+                {{ t('El carrito está vacío.') }}
               </div>
 
-              <div class="cart-dropdown__actions">
-                <button @click="gamesStore.clearCart()" class="btn btn--secondary btn--small">
-                  {{ t('Vaciar') }}
-                </button>
-                <button @click="checkout" class="btn btn--primary btn--small">
-                  {{ t('Pagar') }}
-                </button>
+              <div v-else class="cart-dropdown__content">
+                <ul class="cart-dropdown__list">
+                  <li v-for="item in gamesStore.cart" :key="item.id" class="cart-item">
+                    <img
+                      :src="item.background_image"
+                      :alt="item.name"
+                      class="cart-item__img"
+                      loading="lazy"
+                    />
+                    <div class="cart-item__details">
+                      <span class="cart-item__name">{{ item.name }}</span>
+                      <span class="cart-item__price">{{ authStore.formatPrice(item.price) }}</span>
+                    </div>
+                    <button
+                      @click="gamesStore.removeFromCart(item.id)"
+                      class="cart-item__remove-btn"
+                      :title="t('Eliminar')"
+                    >
+                      <!-- Close SVG Outline -->
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
+                  </li>
+                </ul>
+
+                <div class="cart-dropdown__total">
+                  <span>{{ t('Total') }}:</span>
+                  <span class="cart-dropdown__total-price">
+                    {{ authStore.formatPrice(gamesStore.cartTotal) }}
+                  </span>
+                </div>
+
+                <div class="cart-dropdown__actions">
+                  <button @click="gamesStore.clearCart()" class="btn btn--secondary btn--small">
+                    {{ t('Vaciar') }}
+                  </button>
+                  <button @click="checkout" class="btn btn--primary btn--small">
+                    {{ t('Pagar') }}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
